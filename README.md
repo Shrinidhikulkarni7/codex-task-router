@@ -15,11 +15,11 @@ These are examples of the shipped rules, subject to your account's available mod
 
 ## Watch the demo
 
-[![Watch the Codex Task Router demo: Different tasks. One conversation.](videos/router-film/renders/cover.png)](videos/router-film/renders/codex-task-router.mp4)
+https://github.com/user-attachments/assets/82a66c04-8994-4e4b-8a9a-78433368de8e
 
-**[Watch the 48-second video](videos/router-film/renders/codex-task-router.mp4)** · [Download MP4](https://raw.githubusercontent.com/Shrinidhikulkarni7/codex-task-router/main/videos/router-film/renders/codex-task-router.mp4) · [Offline HTML player](videos/router-film/renders/player.html) · [Subtitles](videos/router-film/renders/codex-task-router.srt)
+**[Open the 48-second video](https://github.com/user-attachments/assets/82a66c04-8994-4e4b-8a9a-78433368de8e)** · [Download MP4](https://raw.githubusercontent.com/Shrinidhikulkarni7/codex-task-router/main/videos/router-film/renders/codex-task-router.mp4) · [Offline HTML player](videos/router-film/renders/player.html) · [Subtitles](videos/router-film/renders/codex-task-router.srt)
 
-The illustrated demo shows how new tasks receive model and reasoning-effort choices while keeping one conversation. Click the cover to open the video. Download the HTML player and open it locally for playback with captions; GitHub's file view does not execute it.
+The illustrated demo shows how new tasks receive model and reasoning-effort choices while keeping one conversation. Play it above or open the video in a new tab. Download the HTML player and open it locally for playback with captions; GitHub's file view does not execute it.
 
 Animation, audio stems, script, rebuild instructions and voice attribution are in the [editable video project](videos/router-film/README.md). See its [verification report](videos/router-film/QA.md) for playback checks and narration limitations.
 

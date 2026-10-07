@@ -1,0 +1,73 @@
+{
+  "title": "Keep the thread",
+  "duration": 48,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "lines": [
+    {
+      "id": "01-hook",
+      "start": 0.6,
+      "text": "Tiny task. Big plan. Tangled bug.",
+      "duration": 3.189979166666667,
+      "end": 3.789979166666667
+    },
+    {
+      "id": "02-problem",
+      "start": 4.0,
+      "text": "Your work changes. Why keep choosing the model by hand?",
+      "duration": 3.7332916666666667,
+      "end": 7.733291666666666
+    },
+    {
+      "id": "03-reveal",
+      "start": 9.1,
+      "text": "Meet Codex Task Router. Different tasks. One conversation.",
+      "duration": 4.650895833333333,
+      "end": 13.750895833333333
+    },
+    {
+      "id": "04-how",
+      "start": 14.7,
+      "text": "In auto mode, each new prompt gets a model and reasoning effort, before the turn starts.",
+      "duration": 5.2786875,
+      "end": 19.9786875
+    },
+    {
+      "id": "05-examples",
+      "start": 22.0,
+      "text": "An easy task: Luna. Planning: Sol. A difficult deadlock: Astra.",
+      "duration": 5.348354166666667,
+      "end": 27.348354166666667
+    },
+    {
+      "id": "06-policy",
+      "start": 28.3,
+      "text": "These are editable defaults, using the models available to your Codex session.",
+      "duration": 4.7273125,
+      "end": 33.0273125
+    },
+    {
+      "id": "07-context",
+      "start": 34.7,
+      "text": "The conversation stays together. Your approvals still go through Codex.",
+      "duration": 4.565625,
+      "end": 39.265625
+    },
+    {
+      "id": "08-close",
+      "start": 40.9,
+      "text": "Start auto. Bring your next task. Keep the thread.",
+      "duration": 3.3394583333333334,
+      "end": 44.23945833333333
+    }
+  ],
+  "voice": {
+    "provider": "Apple AVFoundation",
+    "voice": "Nicky",
+    "identifier": "com.apple.ttsbundle.siri_nicky_en-US_compact",
+    "sample_rate": 22050,
+    "rate": 0.44,
+    "neural_status": "Not verified; local system voice substituted because cloud providers and Kokoro are unavailable"
+  }
+}

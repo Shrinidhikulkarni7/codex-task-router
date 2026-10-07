@@ -1,0 +1,43 @@
+name: Offline router checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ['3.11', '3.13']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONWARNINGS: error::ResourceWarning
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Compile Python sources
+        run: python -m compileall -q install.py skills/codex-model-router/scripts tests
+      - name: Verify CLI entry points
+        run: |
+          python install.py --help
+          python skills/codex-model-router/scripts/router.py --help
+          python install.py --codex-home "$RUNNER_TEMP/router-install-preview" --dry-run
+      - name: Test without Codex, credentials, dependencies, or inference
+        run: python -m unittest discover -s tests -v

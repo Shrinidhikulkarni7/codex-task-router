@@ -1,0 +1,23 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+node_modules/
+.router-state/
+
+# Keep editable media and the selected final demo artifacts; ignore working output.
+/videos/router-film-delivery.zip
+/videos/router-film/assets/audio/voice-test.caf
+/videos/router-film/assets/audio/voice-slower.caf
+/videos/router-film/renders/*
+!/videos/router-film/renders/codex-task-router.mp4
+!/videos/router-film/renders/player.html
+!/videos/router-film/renders/codex-task-router.srt
+!/videos/router-film/renders/cover.png
+/videos/router-film/qa/*
+!/videos/router-film/qa/REPORT.md
+!/videos/router-film/qa/contact-sheet.jpg

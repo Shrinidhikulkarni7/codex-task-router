@@ -1,0 +1,17 @@
+{
+  "title": "Keep the thread",
+  "duration": 48,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "lines": [
+    {"id":"01-hook", "start":0.6, "text":"Tiny task. Big plan. Tangled bug."},
+    {"id":"02-problem", "start":4.0, "text":"Your work changes. Why keep choosing the model by hand?"},
+    {"id":"03-reveal", "start":9.1, "text":"Meet Codex Task Router. Different tasks. One conversation."},
+    {"id":"04-how", "start":14.7, "text":"In auto mode, each new prompt gets a model and reasoning effort, before the turn starts."},
+    {"id":"05-examples", "start":22.0, "text":"An easy task: Luna. Planning: Sol. A difficult deadlock: Astra."},
+    {"id":"06-policy", "start":28.3, "text":"These are editable defaults, using the models available to your Codex session."},
+    {"id":"07-context", "start":34.7, "text":"The conversation stays together. Your approvals still go through Codex."},
+    {"id":"08-close", "start":40.9, "text":"Start auto. Bring your next task. Keep the thread."}
+  ]
+}

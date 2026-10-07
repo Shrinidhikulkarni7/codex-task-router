@@ -1,0 +1,16 @@
+{
+  "name": "router-film",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 source/build.py",
+    "dev": "npx --yes hyperframes@0.8.123 preview",
+    "check": "npx --yes hyperframes@0.8.123 check",
+    "render": "node source/render.mjs",
+    "render:hyperframes": "npx --yes hyperframes@0.8.123 render",
+    "publish": "npx --yes hyperframes@0.8.123 publish"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

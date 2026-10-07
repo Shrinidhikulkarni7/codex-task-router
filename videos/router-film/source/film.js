@@ -1,0 +1,262 @@
+/* Keep the thread. Original artwork and monoline lettering.
+ * Plain JavaScript, no libraries. A frame is a pure function of time.
+ * Shared by the offline SVG exporter, standalone player and HF wrapper. */
+(function (root) {
+  'use strict';
+  const W=1920,H=1080,DURATION=48,FPS=30;
+  const C={paper:'#F5EEDD',ink:'#293936',coral:'#CA5845',sage:'#A9BA9E',yellow:'#E5B958',blue:'#A7C3C7',violet:'#B6AEC5',white:'#FFF9EB',muted:'#53645B'};
+  const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+  const mix=(a,b,p)=>a+(b-a)*p;
+  const ease=x=>{x=clamp(x);return x*x*(3-2*x);};
+  const out=x=>1-Math.pow(1-clamp(x),3);
+  const at=(t,a,d=0.7)=>out((t-a)/d);
+  const n=x=>Number(x.toFixed(3));
+  const hash=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);};
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const path=(d,fill='none',stroke=C.ink,sw=4,extra='')=>`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+  const circle=(x,y,r,fill,stroke=C.ink,sw=3)=>`<circle cx="${n(x)}" cy="${n(y)}" r="${n(r)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+  const ellipse=(x,y,rx,ry,fill,opacity=1)=>`<ellipse cx="${n(x)}" cy="${n(y)}" rx="${n(rx)}" ry="${n(ry)}" fill="${fill}" opacity="${n(opacity)}"/>`;
+  const group=(content,x=0,y=0,s=1,r=0,opacity=1)=>`<g transform="translate(${n(x)} ${n(y)}) rotate(${n(r)}) scale(${n(Math.max(0.001,s))})" opacity="${n(clamp(opacity))}">${content}</g>`;
+  const rect=(x,y,w,h,fill=C.white,r=16,stroke=C.ink,sw=3)=>`<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+  // Hand-authored centerline glyphs, in a 10 x 14 pen grid. No font files.
+  const G={
+    A:'M0 14 L5 0 L10 14 M2 9 L8 9',B:'M0 14 L0 0 L5 0 Q10 0 9 4 Q9 7 1 7 M1 7 Q11 6 10 11 Q10 15 0 14',
+    C:'M10 2 Q7 -1 3 1 Q-1 3 0 9 Q1 16 10 12',D:'M0 14 L0 0 Q10 -1 10 7 Q10 15 0 14',
+    E:'M10 0 L0 0 L0 14 L10 14 M0 7 L8 7',F:'M0 14 L0 0 L10 0 M0 7 L8 7',
+    G:'M10 2 Q7 -1 3 1 Q-1 3 0 9 Q1 16 10 12 L10 7 L6 7',H:'M0 0 L0 14 M10 0 L10 14 M0 7 L10 7',
+    I:'M1 0 L9 0 M5 0 L5 14 M1 14 L9 14',J:'M3 0 L10 0 L10 10 Q10 17 2 13 L0 11',
+    K:'M0 0 L0 14 M10 0 L0 8 L10 14',L:'M0 0 L0 14 L10 14',M:'M0 14 L0 0 L5 8 L10 0 L10 14',
+    N:'M0 14 L0 0 L10 14 L10 0',O:'M5 0 Q-1 0 0 7 Q-1 14 5 14 Q11 14 10 7 Q11 0 5 0',
+    P:'M0 14 L0 0 L5 0 Q11 0 10 4 Q10 8 0 7',Q:'M5 0 Q-1 0 0 7 Q-1 14 5 14 Q11 14 10 7 Q11 0 5 0 M6 10 L11 16',
+    R:'M0 14 L0 0 L5 0 Q11 0 10 4 Q10 8 0 7 M4 7 L10 14',S:'M10 2 Q7 -1 2 1 Q-2 5 5 7 Q13 9 9 13 Q4 16 0 12',
+    T:'M0 0 L10 0 M5 0 L5 14',U:'M0 0 L0 9 Q0 15 5 14 Q10 15 10 9 L10 0',
+    V:'M0 0 L5 14 L10 0',W:'M0 0 L2 14 L5 7 L8 14 L10 0',X:'M0 0 L10 14 M10 0 L0 14',
+    Y:'M0 0 L5 7 L10 0 M5 7 L5 14',Z:'M0 0 L10 0 L0 14 L10 14',
+    '0':'M5 0 Q-1 0 0 7 Q-1 14 5 14 Q11 14 10 7 Q11 0 5 0 M2 11 L8 3',
+    '1':'M2 3 L5 0 L5 14 M1 14 L9 14','2':'M0 3 Q3 -2 8 1 Q13 5 0 14 L10 14',
+    '3':'M0 1 Q11 -3 10 4 Q10 7 4 7 Q12 6 10 12 Q7 16 0 13','4':'M8 14 L8 0 L0 10 L10 10',
+    '5':'M10 0 L0 0 L0 7 Q11 4 10 11 Q8 17 0 13','6':'M9 1 Q0 -2 0 9 Q0 16 7 14 Q13 11 9 7 Q6 4 0 8',
+    '7':'M0 0 L10 0 L3 14','8':'M5 7 Q-3 4 2 1 Q9 -2 10 3 Q11 6 5 7 Q-2 9 1 12 Q5 17 10 12 Q13 8 5 7',
+    '9':'M10 6 Q0 11 0 4 Q0 -1 6 0 Q14 1 8 14',
+    '.':'M5 13 L5 14',',':'M5 12 L3 16',':':'M5 4 L5 5 M5 11 L5 12',';':'M5 4 L5 5 M5 11 L3 15',
+    '-':'M1 7 L9 7','/':'M1 15 L9 -1','?':'M0 3 Q2 -1 7 0 Q13 2 7 7 L5 9 M5 13 L5 14',
+    '!':'M5 0 L5 9 M5 13 L5 14','+':'M0 7 L10 7 M5 2 L5 12','=':'M0 5 L10 5 M0 10 L10 10',
+    '>':'M1 1 L9 7 L1 13','<':'M9 1 L1 7 L9 13','(':'M8 0 Q0 7 8 14',')':'M2 0 Q10 7 2 14',
+    '[':'M8 0 L2 0 L2 14 L8 14',']':'M2 0 L8 0 L8 14 L2 14','_':'M0 14 L10 14',"'":'M5 0 L4 4'
+  };
+  function width(s,size){return Math.max(0,s.length*size*0.93-size*0.20);}
+  function text(s,x,y,size=44,color=C.ink,align='left',weight=1.2){
+    s=s.toUpperCase(); const sc=size/14;
+    if(align==='center')x-=width(s,size)/2;if(align==='right')x-=width(s,size);
+    let str='';
+    for(let i=0;i<s.length;i++)if(G[s[i]])str+=`<g transform="translate(${n(x+i*size*0.93)} ${n(y+(hash(i+13)-0.5)*size*0.018)}) scale(${n(sc)})">${path(G[s[i]],'none',color,weight)}</g>`;
+    return `<g aria-label="${esc(s)}">${str}</g>`;
+  }
+  function pencil(d,color=C.ink,sw=4,fill='none'){
+    return path(d,fill,color,sw)+`<g transform="translate(.9 -.5)" opacity=".13">${path(d,'none',color,sw*.45)}</g>`;
+  }
+  function drawn(d,p,color=C.coral,sw=6){return path(d,'none',color,sw,`pathLength="1000" stroke-dasharray="1000" stroke-dashoffset="${n(1000*(1-clamp(p)))}"`);}
+  function sheet(w,h,color=C.white){return pencil(`M${-w/2+8} ${-h/2} Q0 ${-h/2-5} ${w/2-7} ${-h/2+2} Q${w/2+3} ${-h/2+2} ${w/2} ${-h/2+12} L${w/2-2} ${h/2-10} Q${w/2} ${h/2+4} ${w/2-12} ${h/2} L${-w/2+5} ${h/2+1} Q${-w/2-4} ${h/2} ${-w/2} ${h/2-12} L${-w/2+1} ${-h/2+8} Z`,C.ink,3.2,color);}
+  function rays(x,y,t,color=C.yellow){let z='';for(let i=0;i<7;i++){const a=i*2*Math.PI/7+t*.15;z+=path(`M${n(x+Math.cos(a)*55)} ${n(y+Math.sin(a)*55)} L${n(x+Math.cos(a)*70)} ${n(y+Math.sin(a)*70)}`,'none',color,5);}return z;}
+  function arrow(x,y,rotation=0,color=C.coral){return group(pencil('M-22 -12 L0 0 L-23 13',color,5),x,y,1,rotation);}
+  function icon(kind,t=0,size=1){
+    let z='';
+    if(kind==='file'){
+      z=pencil('M-53 -71 L23 -74 L57 -42 L54 70 L-55 73 Z',C.ink,4,C.white)+pencil('M23 -74 L24 -42 L57 -42',C.ink,3,C.yellow);
+      for(let i=0;i<3;i++)z+=pencil(`M-32 ${-13+i*22} Q-4 ${-17+i*22} 29 ${-14+i*22}`,C.muted,4);
+      z+=group(pencil('M-18 0 L-4 13 L22 -16',C.ink,5),45,58,.8);
+    } else if(kind==='plan'){
+      z=pencil('M-72 -61 L-25 -73 L24 -57 L70 -69 L75 60 L24 73 L-25 58 L-72 73 Z',C.ink,4,C.blue);
+      z+=path('M-25 -73 L-25 58 M24 -57 L24 73','none',C.ink,2.5);
+      z+=pencil('M-48 30 L-48 -29 L2 -29 L2 25 L52 25 L52 -30',C.white,5);
+      z+=circle(-48,30,7,C.coral)+circle(52,-30,7,C.yellow);
+    } else if(kind==='bug'){
+      z=ellipse(0,12,39,48,C.violet)+pencil('M0 -33 C-51 -49 -57 45 -15 60 C39 81 62 15 26 -27 Z',C.ink,4);
+      z+=path('M0 -30 L-1 57','none',C.ink,3);
+      for(let side of [-1,1])for(let i=0;i<3;i++){let q=Math.sin(t*5+i)*7;z+=pencil(`M${side*32} ${-10+i*25} Q${side*63} ${-30+i*28+q} ${side*74} ${-12+i*27+q}`,C.ink,4);}
+      z+=circle(-12,-39,16,C.violet)+circle(14,-38,16,C.violet)+circle(-10,-39,3.2,C.ink,C.ink,0)+circle(12,-39,3.2,C.ink,C.ink,0);
+      z+=path('M-17 -56 Q-34 -80 -43 -69 M17 -53 Q32 -83 43 -70','none',C.ink,4);
+    } else if(kind==='moon'){
+      z=pencil('M23 -49 C-45 -69 -76 28 -12 52 C17 66 46 45 52 22 C7 42 -18 -10 23 -49 Z',C.ink,3,C.yellow);
+      z+=circle(35,-31,5,C.coral,C.coral,0);
+    } else if(kind==='sun'){
+      z=circle(0,0,37,C.yellow);for(let i=0;i<9;i++){let a=i*Math.PI*2/9+t*.13;z+=path(`M${n(49*Math.cos(a))} ${n(49*Math.sin(a))} L${n(64*Math.cos(a))} ${n(64*Math.sin(a))}`,'none',C.ink,4);}
+    } else if(kind==='star'){
+      z=pencil('M0 -64 L17 -18 L64 -17 L29 12 L42 60 L0 33 L-42 60 L-29 12 L-64 -17 L-17 -18 Z',C.ink,3.5,C.violet);
+    } else if(kind==='lock'){
+      z=rect(-39,-6,78,63,C.yellow,12)+pencil('M-25 -6 L-25 -27 C-25 -66 26 -66 26 -27 L26 -6',C.ink,5)+circle(0,23,5,C.ink,C.ink,0)+path('M0 24 L0 39','none',C.ink,4);
+    }
+    return group(z,0,0,size);
+  }
+  function character(t,x,y,s=1,mood='happy',gesture=0){
+    let b=Math.sin(t*2.4)*3,head=Math.sin(t*.8)*2.1,blink=Math.pow(Math.max(0,Math.cos(t*1.65)),38);
+    let z=ellipse(0,121,110,14,C.ink,.085);
+    let armL=gesture===1?-65:gesture===2?-24:28+Math.sin(t*2.7)*10;
+    let armR=gesture===1?-100:gesture===2?-65:23+Math.sin(t*2.4+.8)*11;
+    z+=pencil(`M-46 56 Q-58 88 -58 111 L-81 117 M42 58 Q48 85 54 111 L80 114`,C.ink,6);
+    z+=pencil(`M-82 -45 Q-124 -35 -139 ${armL} M80 -47 Q117 -38 147 ${armR}`,C.ink,5);
+    z+=circle(-140,armL,10,C.white)+circle(147,armR,10,C.white);
+    let body=pencil('M-74 -143 C-102 -111 -98 29 -66 56 C-28 87 58 81 81 47 C104 17 92 -116 66 -144 Q0 -174 -74 -143 Z',C.ink,4,C.sage);
+    body+=path('M-67 -131 Q-84 -37 -66 30','none',C.white,9,'opacity=".46"');
+    body+=pencil('M-84 2 Q-9 24 83 0 L80 28 Q0 45 -82 27 Z',C.ink,3,C.coral);
+    body+=pencil(`M51 24 Q93 42 ${113+Math.sin(t*3)*8} 73 L75 70 L60 38 Z`,C.ink,3,C.coral);
+    const eyesY=-73,eyeh=7.5*(1-.88*blink);
+    body+=ellipse(-29,eyesY,5.3,eyeh,C.ink)+ellipse(29,eyesY,5.3,eyeh,C.ink);
+    body+=ellipse(-49,-48,12,6,C.coral,.28)+ellipse(49,-48,12,6,C.coral,.28);
+    if(mood==='worried')body+=path('M-12 -38 Q1 -46 15 -35 M-43 -101 L-17 -109 M18 -107 L43 -98','none',C.ink,3.5);
+    else body+=path('M-15 -41 Q0 -25 17 -43 M-40 -101 Q-29 -108 -18 -103 M18 -103 Q31 -107 40 -101','none',C.ink,3.5);
+    // A folded-paper routing hat, not an official product logo.
+    body+=pencil('M-102 -153 L1 -212 L102 -150 L47 -163 L0 -150 L-48 -164 Z',C.ink,3.4,C.yellow);
+    body+=path('M1 -212 L0 -152 M-94 -152 L89 -151','none',C.ink,2.5);
+    z+=group(body,0,b,1,head);
+    return group(z,x,y,s);
+  }
+  function taskCard(kind,label,t,x,y,s=1,r=0,color=C.white){
+    return group(ellipse(4,108,108,11,C.ink,.06)+sheet(218,243,color)+group(icon(kind,t),0,-20,.73)+text(label,0,76,Math.min(22,190/(label.length*.93)),C.ink,'center',1.3),x,y,s,r);
+  }
+  function badge(model,effort,t,color=C.yellow,active=true){
+    return sheet(365,145,color)+text(model,0,-42,43,C.ink,'center',1.45)+text(effort,0,32,23,C.ink,'center',1.1)+(active?circle(150,-53,7,C.coral,C.coral,0):'');
+  }
+  function background(t){
+    let z=`<rect width="1920" height="1080" fill="${C.paper}"/><rect width="1920" height="1080" fill="url(#paper)"/>`;
+    z+=path('M58 96 L58 58 L96 58 M1824 58 L1862 58 L1862 96 M58 984 L58 1022 L96 1022 M1824 1022 L1862 1022 L1862 984','none',C.muted,2,'opacity=".27"');
+    z+=text('CODEX TASK ROUTER',120,65,18,C.muted,'left',1.15);
+    const seg=t<9?1:t<14.7?2:t<28.3?3:t<34.7?4:t<40.9?5:6;
+    z+=text(`0${seg} / 06`,1800,65,18,C.muted,'right',1.15);
+    return z;
+  }
+  function opening(t){
+    let z='';
+    z+=text('TASKS CHANGE.',950,157,86,C.ink,'center',1.3);
+    z+=drawn('M539 270 Q979 289 1385 265',at(t,.5,1.2),C.coral,7);
+    z+=drawn('M116 843 C349 686 487 943 654 832 C783 733 958 920 1169 817 C1378 714 1591 965 1804 814',at(t,1.4,2.3),C.coral,6);
+    const fly=at(t,.1,.7);
+    z+=character(t,970,684,1.36,t<4?'worried':'happy',1);
+    z+=taskCard('file','TINY TASK',t,mix(970,527,fly),mix(360,460,fly)+Math.sin(t*1.8)*17,fly,-12+Math.sin(t*1.4)*5);
+    z+=taskCard('plan','BIG PLAN',t,mix(970,1410,at(t,.3)),mix(360,432,at(t,.3))+Math.sin(t*1.8+2)*17,at(t,.3),10+Math.sin(t*1.2)*5,C.blue);
+    z+=taskCard('bug','TANGLED BUG',t,1490+Math.sin(t*1.4)*17,760+Math.cos(t*1.5)*12,at(t,.6)*.9,-8,C.violet);
+    z+=group(text('SWITCH BY HAND?',0,0,32,C.ink,'center'),495,695,1,-5,at(t,4.3));
+    z+=group(pencil('M-38 -45 Q-58 -100 2 -110 Q56 -105 26 -64 L12 -49 M10 -29 L10 -24',C.coral,5),1130,393,1,10,1-at(t,5.5));
+    return z;
+  }
+  function reveal(t){
+    let p=t-9,z='';
+    z+=text('MEET YOUR',200,222,37,C.muted);
+    z+=group(text('TASK ROUTER',0,0,80,C.ink,'left',1.4),195,309,at(p,.15));
+    z+=text('DIFFERENT TASKS.',204,453,38,C.ink);
+    z+=group(text('ONE CONVERSATION.',0,0,38,C.ink),204,516,1,0,at(p,1.4));
+    z+=drawn('M198 620 C547 536 574 790 923 698 C1169 631 1079 291 1436 309 C1720 325 1778 668 1569 752 C1416 814 1260 754 1292 658',at(p,.3,2.3));
+    z+=character(t,1442,622,1.45,'happy',2);
+    z+=group(icon('file',t),1080,797,.64,-14,at(p,.4));
+    z+=group(icon('plan',t),1738,389,.62,12,at(p,.7));
+    z+=group(icon('bug',t),1708,823,.54,-8,at(p,1));
+    z+=group(rect(-174,-42,348,84,C.yellow,20)+text('AUTO MODE',0,-17,32,C.ink,'center'),505,776,at(p,2));
+    return z;
+  }
+  function routing(t){
+    let p=t-14.7,z='';
+    z+=text('A CHOICE BEFORE EACH NEW TURN.',960,153,47,C.ink,'center',1.25);
+    z+=text('MODEL + REASONING EFFORT',960,236,25,C.muted,'center',1.05);
+    // Three examples are tied to the actual default policy, not benchmark claims.
+    let ix=t<23.8?0:t<25.5?1:2;
+    let phaseStart=[14.7,23.8,25.5][ix],q=t-phaseStart;
+    let types=['file','plan','bug'],labels=['LIST FILES','PLAN CACHE','DEADLOCK'];
+    let colors=[C.yellow,C.blue,C.violet],models=['LUNA','SOL','ASTRA'],efforts=['MEDIUM','HIGH','XHIGH'];
+    z+=drawn('M122 718 C343 657 554 798 760 707 C1045 586 1127 847 1418 703 C1584 620 1670 629 1805 703',at(p,.2,1.4));
+    z+=character(t,924,628,1.15,'happy',2);
+    let travel=ease((q-.1)/1.35);
+    const tx=mix(308,485,travel),ty=533-Math.sin(travel*Math.PI)*50;
+    z+=taskCard(types[ix],labels[ix],t,tx,ty,.95,mix(-12,-4,travel),C.white);
+    z+=group(badge(models[ix],efforts[ix],t,colors[ix]),1385,512,at(q,.2,.6));
+    z+=group(icon(['moon','sun','star'][ix],t),1630,436,.61,0,at(q,.55));
+    z+=drawn('M636 514 Q753 482 795 518',at(q,.35,.8),C.coral,5)+group(arrow(795,518,24),0,0,1,0,at(q,1.1,.1));
+    z+=drawn('M1055 522 Q1133 481 1199 499',at(q,.85,.7),C.coral,5)+group(arrow(1199,499,6),0,0,1,0,at(q,1.5,.1));
+    // A small paper message travels along the actual routing connectors.
+    // The long first example includes a second pass when its narration arrives.
+    let run=q<5.6?q:q-5.6;
+    const kick=ix===0?.6:.35,transit=ix===0?3.8:1.05;
+    if(run>kick&&run<kick+transit){
+      let progress=ease((run-kick)/transit),px=mix(635,1193,progress),py=515-Math.sin(progress*Math.PI)*38;
+      let envelope=pencil('M-18 -11 L18 -11 L18 12 L-18 12 Z',C.ink,2,C.white)+path('M-18 -11 L0 3 L18 -11','none',C.coral,2);
+      if(px<792||px>1060)z+=group(envelope,px,py,.85,Math.sin(progress*Math.PI)*-8);
+    }
+    z+=text('PROMPT',472,783,24,C.muted,'center');
+    z+=text('ROUTER',928,806,24,C.muted,'center');
+    z+=text('NEW TURN',1400,783,24,C.muted,'center');
+    z+=text('DEFAULT POLICY EXAMPLES',960,904,22,C.muted,'center',1.1);
+    if(p<6.4){
+      const spin=at(p,1.8,1.0);
+      z+=group(path('M-60 17 Q-62 -63 0 -72 Q61 -61 63 18','none',C.ink,3)+path(`M0 13 L${n(Math.sin(mix(-1,1,spin))*48)} ${n(-Math.cos(mix(-1,1,spin))*48)}`,'none',C.coral,5)+circle(0,13,6,C.ink),1378,677,.72);
+    }
+    return z;
+  }
+  function policy(t){
+    let p=t-28.3,z='';
+    z+=text('YOUR POLICY.',193,182,73,C.ink,'left',1.25);
+    z+=text('AVAILABLE MODELS.',193,300,31,C.muted);
+    z+=character(t,441,693,1.16,'happy',2);
+    let book=pencil('M850 383 Q1090 337 1300 381 Q1510 344 1750 383 L1741 816 Q1519 773 1300 816 Q1082 768 852 810 Z',C.ink,4,C.white);
+    book+=path('M1300 387 Q1290 615 1300 814','none',C.ink,3);
+    book+=text('TASK',923,432,29)+text('CHOICE',1360,432,29);
+    const ls=['EASY','PLAN','DEEP DEBUG'],ms=['LUNA','SOL','ASTRA'];
+    for(let i=0;i<3;i++){
+      book+=group(text(ls[i],919,539+i*83,25)+text(ms[i],1360,539+i*83,25),0,0,1,0,at(p,.4+i*.35));
+      book+=drawn(`M1180 ${554+i*83} Q1230 ${546+i*83} 1274 ${554+i*83}`,at(p,.6+i*.35),C.coral,3.5);
+      book+=group(pencil('M0 7 L9 17 L27 -8',C.ink,4),1663,546+i*83,1,0,at(p,1.2+i*.35));
+    }
+    // A turning pencil underlines the chosen policy entry; the choice itself
+    // remains an example from policy.json, not an invented adaptive capability.
+    const selectRow=p<2.8?0:p<4.0?1:2;
+    book+=drawn(`M1357 ${580+selectRow*83} Q1462 ${587+selectRow*83} 1585 ${579+selectRow*83}`,at(p,[1.7,2.8,4][selectRow],.5),C.coral,4);
+    z+=group(book,0,0,1,0,at(p,.1));
+    z+=drawn('M122 877 Q673 764 966 884 Q1230 959 1791 869',at(p,.1,1.3),C.coral,6);
+    z+=group(rect(-215,-38,430,76,C.yellow,21)+text('EDITABLE DEFAULTS',0,-13,24,C.ink,'center'),425,402,at(p,1.2));
+    return z;
+  }
+  function continuity(t){
+    let p=t-34.7,z='';
+    z+=text('SAME CONVERSATION.',960,167,65,C.ink,'center',1.3);
+    z+=drawn('M124 684 C264 833 374 825 453 634 C534 416 638 747 749 635 C899 451 933 804 1150 633 C1337 465 1462 823 1800 676',at(p,.1,1.8),C.coral,7);
+    const xx=[350,702,1040],ic=['file','plan','bug'];
+    for(let i=0;i<3;i++){
+      z+=group(sheet(216,245,[C.yellow,C.blue,C.violet][i])+group(icon(ic[i],t),0,-14,.69)+text(['LUNA','SOL','ASTRA'][i],0,80,22,C.ink,'center'),xx[i],516,at(p,.15+i*.35),[-8,4,-5][i]);
+    }
+    z+=character(t,1460,640,1.13,'happy',2);
+    z+=group(pencil('M-50 25 L-50 -48 Q-50 -92 0 -92 Q50 -92 50 -48 L50 25',C.ink,5)+rect(-64,-8,128,91,C.yellow,18)+path('M-20 36 L-3 53 L33 13','none',C.ink,6),1670,474,.66,0,at(p,2.2));
+    z+=group(text('APPROVALS STAY WITH CODEX',0,0,29,C.ink,'center'),968,840,1,0,at(p,2.4));
+    return z;
+  }
+  function ending(t){
+    let p=t-40.9,z='';
+    z+=text('DIFFERENT TASKS.',770,190,67,C.ink,'center',1.35);
+    z+=group(text('ONE CONVERSATION.',0,0,67,C.ink,'center',1.35),770,303,1,0,at(p,.5));
+    z+=drawn('M287 431 C654 456 897 410 1246 444 C1387 458 1281 740 1530 770 C1651 784 1774 725 1783 635',at(p,.5,2.4),C.coral,7);
+    z+=character(t,1577,577,1.34,'happy',1);
+    z+=group(sheet(974,123,C.ink)+text('START AN AUTO SESSION',0,-14,32,C.white,'center',1.05),764,588,at(p,1));
+    z+=text('START FROM THE README',765,698,26,C.muted,'center',1.05);
+    z+=group(text('CODEX-TASK-ROUTER',0,0,40,C.ink,'center',1.15),792,836,1,0,at(p,1.8));
+    z+=group(icon('file',t),1328,832,.40,-10,at(p,1.7));
+    z+=group(icon('plan',t),1483,864,.40,5,at(p,1.9));
+    z+=group(icon('bug',t),1650,855,.38,-5,at(p,2.1));
+    return z;
+  }
+  const scenes=[{s:0,e:9,f:opening},{s:9,e:14.7,f:reveal},{s:14.7,e:28.3,f:routing},{s:28.3,e:34.7,f:policy},{s:34.7,e:40.9,f:continuity},{s:40.9,e:48,f:ending}];
+  function frame(t){
+    t=clamp(t,0,DURATION-1/FPS);
+    let texture='';for(let i=0;i<80;i++){let x=hash(i+10)*200,y=hash(i+470)*200;texture+=path(`M${n(x)} ${n(y)} l${n(1+hash(i+20)*4)} ${n(hash(i+50)*1.5)}`,'none',C.ink,.5,'opacity=".075"');}
+    let z=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Codex Task Router: different tasks, one conversation"><defs><pattern id="paper" width="200" height="200" patternUnits="userSpaceOnUse">${texture}</pattern></defs>`;
+    z+=background(t);
+    for(let i=0;i<scenes.length;i++){
+      const q=scenes[i],transition=.42;
+      if(t>=q.s-transition&&t<q.e){
+        let alpha=i===0?1:ease((t-(q.s-transition))/transition);
+        if(i<scenes.length-1&&t>q.e-transition)alpha*=1-ease((t-(q.e-transition))/transition);
+        if(alpha>0)z+=group(q.f(Math.max(q.s,t)),0,0,1,0,alpha);
+      }
+    }
+    return z+'</svg>';
+  }
+  const api={frame,W,H,DURATION,FPS,scenes:scenes.map(({s,e})=>({start:s,end:e})),palette:C};
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
+  root.RouterFilm=api;
+})(typeof globalThis!=='undefined'?globalThis:this);

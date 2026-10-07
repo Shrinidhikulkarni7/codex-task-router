@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "profiles": {
+    "precheck": {"models": ["gpt-6-luna", "gpt-5.6-luna"], "effort": "low"},
+    "easy": {"models": ["gpt-6-luna", "gpt-5.6-luna"], "effort": "medium"},
+    "coding": {"models": ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-sol"], "effort": "medium"},
+    "review": {"models": ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-sol"], "effort": "medium"},
+    "planning": {"models": ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-sol"], "effort": "high"},
+    "debugging": {"models": ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-sol"], "effort": "high"},
+    "deep-debug": {"models": ["gpt-6-astra"], "effort": "xhigh"},
+    "terra": {"models": ["gpt-5.6-terra"], "effort": "medium"}
+  }
+}

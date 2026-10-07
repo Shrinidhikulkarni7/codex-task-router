@@ -1,0 +1,31 @@
+1
+00:00:00,600 --> 00:00:03,790
+Tiny task. Big plan. Tangled bug.
+
+2
+00:00:04,000 --> 00:00:07,733
+Your work changes. Why keep choosing the model by hand?
+
+3
+00:00:09,100 --> 00:00:13,751
+Meet Codex Task Router. Different tasks. One conversation.
+
+4
+00:00:14,700 --> 00:00:19,979
+In auto mode, each new prompt gets a model and reasoning effort, before the turn starts.
+
+5
+00:00:22,000 --> 00:00:27,348
+An easy task: Luna. Planning: Sol. A difficult deadlock: Astra.
+
+6
+00:00:28,300 --> 00:00:33,027
+These are editable defaults, using the models available to your Codex session.
+
+7
+00:00:34,700 --> 00:00:39,266
+The conversation stays together. Your approvals still go through Codex.
+
+8
+00:00:40,900 --> 00:00:44,239
+Start auto. Bring your next task. Keep the thread.

@@ -1,14 +1,14 @@
 # Codex task router
 
-**Choose a model and reasoning effort for each new prompt, in one native Codex terminal conversation.** The `auto` command opens Codex through a local proxy, reads each new task, and selects from an editable policy before Codex starts that turn.
+**Match the model to the work, without switching for every small follow-up.** The `auto` command opens one native Codex terminal conversation through a local proxy. Its default selective mode retains model and effort for brief checks and continuations, and can reselect when a clear instruction calls for a different work phase. Selection happens before the next turn starts.
 
 ```text
-Plan the cache architecture       → Sol 6.1 · high
-List the files in this directory  → Luna · medium
-Implement the approved plan       → Sol 6.1 · medium
-Run the existing unit tests       → Luna · low
-Investigate a deadlock            → Astra · xhigh
-Continue                         → retain the last accepted selection
+Plan the cache architecture        → Sol 6.1 · high
+Implement the approved plan        → Sol 6.1 · medium
+Run the existing unit tests        → keep Sol 6.1 · medium
+Investigate the deadlock           → Astra · xhigh
+Continue                          → keep Astra · xhigh
+New task: List files here          → Luna · medium
 ```
 
 These are examples of the shipped rules, subject to your account's available models. Classification is local Python logic; it makes no separate LLM request. The router uses your existing Codex authentication and needs no Python packages or separate API key.
@@ -19,13 +19,15 @@ https://github.com/user-attachments/assets/82a66c04-8994-4e4b-8a9a-78433368de8e
 
 **[Open the 48-second video](https://github.com/user-attachments/assets/82a66c04-8994-4e4b-8a9a-78433368de8e)** · [Download MP4](https://raw.githubusercontent.com/Shrinidhikulkarni7/codex-task-router/main/videos/router-film/renders/codex-task-router.mp4) · [Offline HTML player](videos/router-film/renders/player.html) · [Subtitles](videos/router-film/renders/codex-task-router.srt)
 
-The illustrated demo shows how new tasks receive model and reasoning-effort choices while keeping one conversation. Play it above or open the video in a new tab. Download the HTML player and open it locally for playback with captions; GitHub's file view does not execute it.
+The illustrated demo shows the original per-prompt behavior, available with `"routing_mode": "prompt"`. The default now switches selectively, as shown above; the video has not been rerecorded for this update. Play it here or open it in a new tab. Download the HTML player and open it locally for playback with captions; GitHub's file view does not execute it.
 
 Animation, audio stems, script, rebuild instructions and voice attribution are in the [editable video project](videos/router-film/README.md). See its [verification report](videos/router-film/QA.md) for playback checks and narration limitations.
 
 ## Status and compatibility
 
 This is an independent, experimental integration. The user reported that `auto` worked in a real terminal on 2026-10-07 with the Codex 0.160.0 setup. Local CLI inspection subsequently found 0.160.1; that is not a separate runtime verification. Automated tests use simulated clients and servers and make no inference requests.
+
+Selective routing passes local behavior/protocol tests. The earlier task mode also passed a six-turn user-terminal check, verified against routing records and the local session log. That live check does not validate the newly added phase rules, and cost savings remain unproven. See the [recorded checks](docs/compatibility.md#evidence-as-of-2026-10-08) and [live usage measurements](docs/usage-and-cost.md#live-task-retention-verification-2026-10-08).
 
 OpenAI documents the app-server and WebSocket interface as experimental and unsupported for production workloads. This repository adds validation, diagnostics, cleanup, and protocol tests, but cannot turn that upstream interface into a production support guarantee. See [compatibility and verification](docs/compatibility.md). [Official App Server documentation](https://learn.chatgpt.com/docs/app-server#protocol).
 
@@ -55,7 +57,9 @@ python3 "$ROUTER_SCRIPT" auto
 
 `doctor` should report `"control_socket": "reachable"`. Hook readiness and live-switching flags are optional for `auto`. Use `auto --cwd /absolute/path/to/project` to select a different project, or `auto --thread THREAD_ID` to resume a conversation.
 
-Keep entering ordinary prompts in that window. When you send another message while a turn is still working, Codex may treat it as steering; steering retains the active turn's model. A separate Codex app or terminal opened normally does not pass through this proxy.
+Keep entering prompts in that window. Brief follow-ups retain the selection; recognized work-phase instructions can reselect. Begin an unrelated task with `New task: ...` or `[route:new] ...`. Explicit model/profile/effort choices stay pinned until a boundary or another override. Resuming a conversation pins the settings reported by Codex because earlier manual-choice provenance is unavailable. Active-turn steering keeps the active model. A separate Codex app or terminal opened normally does not pass through this proxy.
+
+Codex also creates temporary threads for work such as conversation titles. Threads identified as ephemeral keep Codex's native model settings and appear as `skipped` with `thread_kind: "ephemeral"` in routing history. Their reported usage stays separate from your task's thread.
 
 From another terminal, inspect the most recent choices:
 
@@ -64,19 +68,23 @@ python3 "$ROUTER_SCRIPT" status
 python3 "$ROUTER_SCRIPT" status --thread THREAD_ID
 ```
 
-For proxy records, `accepted` means Codex acknowledged the selected turn request. It does not independently measure which model performed inference.
+For proxy records, `accepted` means Codex acknowledged the selected turn request. When the daemon reports usage, `token_usage` also contains its latest token and cache counters. These are thread snapshots, not per-model billing or proof of which model performed inference. See [tokens, cache reuse, and comparison instructions](docs/usage-and-cost.md).
+
+## Tokens and cache reuse
+
+Model changes can reduce prompt-cache reuse even between turns. A cheaper model can still cost less despite a cache miss; a more capable model may avoid retries. Selective routing balances those considerations with simple rules, without predicting prices or measuring answer quality. It does not guarantee cache hits or savings. This remains one conversation, with no automatic worker creation. Read the [measurements and cost example](docs/usage-and-cost.md) and [exact decision process](docs/selective-routing.md).
 
 ## Choose how to route
 
 | Command | Scope | Requirements |
 | --- | --- | --- |
-| `auto` | Every new text prompt in the terminal it opens | Reachable daemon; native remote TUI; local Unix sockets |
+| `auto` | Selective switching; optional fixed-task or per-prompt modes | Reachable daemon; native remote TUI; local Unix sockets |
 | `preview` | Print a proposed choice without starting a task | Codex's local model cache |
 | `run` | Initial task of a new native Codex session | Local model cache for a routed task |
 | `apply` | Compatible live change in an already active turn | Reachable hosting daemon; `step_model_switching` |
 | `doctor` | Read connection, catalog, and optional hook diagnostics | Reachable daemon |
 | `status` | Read local routing history | No daemon required |
-| `hook` | Legacy asynchronous `UserPromptSubmit` handler | Explicit installation, hook trust, live-switching support |
+| `hook` | Legacy asynchronous `UserPromptSubmit` handler | `prompt` mode, explicit installation, hook trust, live-switching support |
 
 Use [the complete usage guide](docs/usage.md) for every command and option, installation, updates, and removal. Use [troubleshooting](docs/troubleshooting.md) for connection, catalog, and live-switching failures.
 
@@ -100,6 +108,8 @@ The profiles in [policy.json](skills/codex-model-router/policy.json) are startin
 Use an explicit prefix when you want deterministic routing:
 
 ```text
+New task: Design the worker queue and retry policy.
+[route:new] List the files in this directory.
 [route:planning] Design the worker queue and retry policy.
 [route:terra] Implement the approved straightforward changes.
 [route:deep-debug] Investigate the intermittent deadlock.
@@ -107,7 +117,9 @@ Use an explicit prefix when you want deterministic routing:
 Use Luna with medium reasoning to list the files.
 ```
 
-A successful native `/model` update takes priority for the next prompt unless that prompt contains a leading route directive. Ambiguous continuations keep the remembered selection, with a planning-profile fallback in Codex Plan mode. See [selection precedence and customization](docs/usage.md#selection-precedence) for the exact scope.
+A successful native `/model` update observed through the proxy pins the choice, as does an accepted explicit profile/model/effort request. `New task:` allows automatic selection again while keeping the same conversation and history. The router does not infer task completion or count tool failures. It recognizes specific user reports of repeated unsuccessful fixes. See [selection precedence](docs/usage.md#selection-precedence) and [the rules and their limits](docs/selective-routing.md).
+
+The shipped top-level policy is `"routing_mode": "selective"`; policies without this field use the same default. Existing policies explicitly set to `"task"` or `"prompt"` keep that behavior. Choose `task` to retain settings until a boundary/override, or `prompt` to classify each eligible prompt. Restart `auto` after updating Python source; the installed skill links directly to this checkout.
 
 To prefer Terra for ordinary implementation, change only the `coding` entry in `policy.json`:
 
@@ -133,7 +145,7 @@ The proxy updates `model` and `effort` on eligible `turn/start` requests, includ
 
 ## Optional live hook
 
-The legacy hook can make compatible changes after admission. It is unnecessary for `auto`, may finish after inference has begun, and cannot make every model transition within an active turn.
+The legacy hook only changes settings with `"routing_mode": "prompt"`. In selective and task modes it records a skip. It is unnecessary for `auto`, may finish after inference has begun, and cannot make every model transition within an active turn. To use it deliberately, set prompt mode first:
 
 ```sh
 python3 install.py --legacy-hook --dry-run

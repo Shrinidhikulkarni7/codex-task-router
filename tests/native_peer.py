@@ -128,8 +128,15 @@ def conversation(source, sink):
         "Implement the approved plan",
         "Use Terra to implement pagination",
         "Run the existing tests",
-        "Investigate a deadlock",
+        "[route:deep-debug] Investigate a deadlock",
         "continue",
+        "New task: List files in the current directory",
+        "Review the changes",
+        "[route:new] Implement pagination",
+        "Investigate the intermittent deadlock",
+        "Run tests",
+        "Summarize these 30 release notes",
+        "Run tests",
     ]):
         params = {"threadId": "one", "input": [{"type": "text", "text": task}], "model": "gpt-6-astra", "effort": "high", "approvalPolicy": "on-request", "sandboxPolicy": {"type": "readOnly"}, "collaborationMode": {"mode": "default", "settings": {"model": "gpt-6-astra", "reasoning_effort": "high", "developer_instructions": "native client instructions"}}}
         send(sink, {"id": index + 10, "method": "turn/start", "params": params}, masked=True)

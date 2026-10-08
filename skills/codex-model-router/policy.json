@@ -1,5 +1,6 @@
 {
   "enabled": true,
+  "routing_mode": "selective",
   "profiles": {
     "precheck": {"models": ["gpt-6-luna", "gpt-5.6-luna"], "effort": "low"},
     "easy": {"models": ["gpt-6-luna", "gpt-5.6-luna"], "effort": "medium"},

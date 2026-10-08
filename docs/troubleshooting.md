@@ -33,6 +33,8 @@ python3 "$ROUTER_SCRIPT" status --thread THREAD_ID
 
 A reachable socket alone does not prove that the server hosts your active chat. For live updates, inspect the target thread too. A false hook readiness or disabled live-switching flag does not prevent `auto`: they concern the optional legacy integration. `doctor` may exit successfully with an optional diagnostic error, so inspect the fields rather than relying only on its exit code.
 
+A trusted hook can still be intentionally inactive: default `"routing_mode": "selective"` and optional `"task"` disable legacy hook changes. Launch `auto` for these strategies; the hook only routes when you explicitly choose prompt mode.
+
 With `--thread`, the feature query uses that loaded thread's refreshed configuration, including project settings. Without a thread it describes server configuration. Another terminal or app can use a different runtime.
 
 ## Interpret status
@@ -49,7 +51,15 @@ Proxy records have `source: "session-proxy"` and usually `event: "turn/start"`. 
 | `applied` | A legacy live update was accepted for subsequent captures in the active turn |
 | `failed` | Selection, transport, or Codex rejected the operation; read `error` |
 
-For accepted proxy turns, `turn_status` adds the completion status reported by Codex. An accepted turn can still fail during execution. Neither `accepted` nor `applied` proves that a particular model performed inference. The router has no independent usage meter. Native `/status` is useful for checking displayed selection, but is also not a measurement of each inference call.
+For acknowledged proxy turns, `turn_status` adds the completion status reported by Codex. It is also available when routing was skipped, for example by `[route:off]`. An accepted turn can still fail during execution. Neither `accepted` nor `applied` proves that a particular model performed inference. Native `/status` is useful for checking displayed selection, but is also not a measurement of each inference call.
+
+In selective mode, `selection.kind: "retain"` means the choice was kept; `phase` means a recognized work instruction requested selection. `selection.pinned: true` explains why an explicit or resumed choice does not change automatically. `selection.profile` identifies the remembered phase when known. In task mode, the reason `Retaining model and effort for current task` is expected for ordinary follow-ups. An `accepted` record can confirm retention rather than a switch. Old records are not rewritten with new fields.
+
+`token_usage` appears only when the proxy observes a valid `thread/tokenUsage/updated` notification for that thread and turn. `last` and `total` preserve the server's snapshot fields: they are not per-turn aggregates, and cumulative `total` values must not be added across records. The router does not independently meter inference, identify the model behind each counter, or calculate your bill. See [usage fields and comparison instructions](usage-and-cost.md).
+
+Missing counters mean unknown usage, not zero. Start a new `auto` process after updating the checkout; existing processes do not load the new recorder. Older history is not backfilled. `run`, the legacy hook, and direct `apply` do not collect usage. A daemon that omits or changes the notification can still route tasks, but no valid snapshot will be recorded.
+
+Temporary native tasks, including title generation, use a separate thread ID. The proxy preserves their settings and records `status: "skipped"` plus `thread_kind: "ephemeral"` when lifecycle metadata identifies them. Earlier revisions could incorrectly classify a title prompt as coding and select Sol. Update and restart `auto` to load the fix; historical records are retained as they happened. Use `status --thread THREAD_ID` to inspect just the user task. A separate thread's record does not mean the main task switched back.
 
 `status` displays ten recent records; the state directory retains up to 200. No matching records may mean no eligible routing event occurred, a different checkout recorded it, the thread filter is wrong, or state could not be written. Image-only input and active-turn steering do not create normal selection records. Check terminal errors and `history_path`.
 
@@ -66,10 +76,14 @@ For accepted proxy turns, `turn_status` adds the completion status reported by C
 | `No configured model is available` | None of that profile's IDs is advertised. Check `doctor`, then choose available IDs in the policy or use a valid explicit model |
 | Model does not advertise the effort | Use an effort supported by that selected model. The router does not try the next candidate just to satisfy an effort |
 | Missing or invalid `models_cache.json` | Open/sign in to Codex so its cache exists, or choose the correct cache via `--codex-home`; `auto` uses the live catalog |
-| Policy error | Restore a valid object with `enabled`, the eight known profiles, nonempty model arrays, and supported effort names; remove unknown keys |
-| `auto selects each prompt separately` | Remove CLI model/phase/effort overrides; put the choice in a prompt inside `auto` |
-| A new prompt unexpectedly retains the current model | It may be active-turn steering, manual one-prompt priority, ambiguous wording, or `[route:off]`; inspect `reason` and selection precedence |
-| A follow-up in Plan mode selects planning | This is the Plan-mode fallback for otherwise unclassified prompts |
+| Policy error | Restore a valid object with `enabled`, the eight known profiles, nonempty model arrays, and supported effort names; optional `routing_mode` is `selective`, `task`, or `prompt`; remove unknown keys |
+| `auto takes routing choices from prompts` | Remove CLI model/phase/effort overrides; put the choice in a prompt inside `auto` |
+| A file listing or existing check keeps the current model | Expected in selective/task modes. Begin a different task with `New task:` or `[route:new]`, or request an explicit profile/model |
+| A harder follow-up keeps Luna or another model | Check `routing_mode` and `selection.pinned`. Task mode retains everything; explicit/resumed choices are pinned in selective mode. Unrecognized wording also retains. Use a boundary/override, or a clear instruction such as `Implement pagination` for an unpinned selective task |
+| Model switches after `Implement`, `Diagnose`, or a substantial summary batch | Expected selective phase behavior. Inspect `selection.kind` and `reason`; choose task mode or pin a model if you want to keep it fixed |
+| Profile edits do not change the current phase | They apply when selection is next requested, through a boundary, override, or recognized phase change; retained settings stay intact |
+| A follow-up in Plan mode changes effort | An unclassified Plan-mode fallback is expected only during initial/new selection or prompt mode. A clear selective phase instruction can independently change effort. Check `reason` and restart `auto` after code updates |
+| A trusted hook says selective/task routing requires `auto` | Expected in these modes; launch `auto`. Opt into `prompt` only if you want the legacy hook behavior |
 | Another window does not route | Only the TUI launched through `auto` is proxied. Open or resume that conversation through `auto` |
 | No active turn or target no longer active | `apply` only targets running work; do not create a replacement task just to force an update |
 | `loaded_on_this_server: false` | The selected daemon does not host that loaded thread; check thread ID, `CODEX_HOME`, and `--sock` |
@@ -97,9 +111,9 @@ The hook is asynchronous. Its feedback may arrive after the response you were wa
 
 1. Run the unit tests from a checkout, then run `doctor` in the intended terminal environment.
 2. Start `auto` in a disposable working directory with the normal permissions you intend to use.
-3. Submit a planning prompt, wait for completion, then a small directory-inspection prompt, then `Continue`.
-4. Inspect native selection and `status --thread THREAD_ID`; check that IDs stay in the same conversation and reasons match expectations.
-5. If available in your client, change `/model`, submit one prompt, then another recognizable task to check one-prompt priority.
+3. In task mode, submit `[route:coding] Run pwd. Do not edit files.`, wait for completion, then `List the first five directory entries. Do not edit files.` Both should request Sol / medium with the shipped policy.
+4. Submit `New task: Run pwd and list five entries. Do not edit files.` It should request Luna / medium. Inspect `status --thread THREAD_ID`; check the same conversation ID, routing mode, and reasons. Each task must be submitted after the previous turn finishes.
+5. If available in your client, change `/model`, then submit two simple follow-ups. Both should retain your manual settings in task mode. Explicit overrides should still take effect. In opt-in prompt mode the manual priority lasts for one accepted ordinary prompt.
 
 Real prompts can make inference requests and consume normal Codex usage. Automated fixture tests do not. Record the CLI and daemon versions, policy, selected IDs, and observed outcome without claiming measured inference from acknowledgment alone.
 

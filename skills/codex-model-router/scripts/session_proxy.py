@@ -188,15 +188,25 @@ def prompt_text(params):
     return "\n".join(texts).strip()
 
 
-def explicit_selection(task, catalog, policy, current):
+def explicit_request(task):
     prose = re.split(r"```|\n\s*>", task, maxsplit=1)[0]
     match = re.match(r"\s*(?:please\s+)?(?:use|switch to|stay on|keep using)\s+(?:the\s+)?(gpt-[\w.-]+|sol|terra|luna|astra)\b", prose, re.I)
-    effort_match = re.search(r"\b(none|minimal|low|medium|high|xhigh|extra[ -]high|max|ultra)\s+(?:reasoning|effort)\b", prose, re.I)
+    effort_pattern = r"\b(none|minimal|low|medium|high|xhigh|extra[ -]high|max|ultra)\s+(?:reasoning|effort)\b"
+    effort_match = (re.search(effort_pattern, prose, re.I) if match else
+                    re.match(r"\s*(?:please\s+)?(?:use|switch to|stay on|keep using)\s+(?:the\s+)?" + effort_pattern, prose, re.I))
     if not match and not effort_match:
         return None
     effort = effort_match.group(1).lower().replace("extra-high", "xhigh").replace("extra high", "xhigh") if effort_match else None
+    return match.group(1).lower() if match else None, effort
+
+
+def explicit_selection(task, catalog, policy, current):
+    request = explicit_request(task)
+    if request is None:
+        return None
+    model, effort = request
     aliases = {"sol": "coding", "terra": "terra", "luna": "easy", "astra": "deep-debug"}
-    model = match.group(1).lower() if match else current.get("model")
+    model = model or current.get("model")
     if not model:
         raise router.RouterError("Cannot honor an effort request without knowing the selected model")
     if model in aliases:
@@ -216,6 +226,21 @@ class TurnRouter:
         self.active = set()
         self.active_turns = {}
         self.manual_next = set()
+        self.ephemeral = set()
+        self.task_selected = set()
+        self.phase = {}
+        self.pinned = set()
+
+    def observe_thread_kind(self, thread, requested_ephemeral=None):
+        if not isinstance(thread, dict):
+            return
+        thread_id = thread.get("id")
+        if not isinstance(thread_id, str) or not thread_id:
+            return
+        if thread.get("ephemeral") is True or requested_ephemeral is True:
+            self.ephemeral.add(thread_id)
+        elif thread.get("ephemeral") is False:
+            self.ephemeral.discard(thread_id)
 
     async def prepare(self, message, catalog):
         if message.get("method") != "turn/start" or "id" not in message:
@@ -233,31 +258,62 @@ class TurnRouter:
             return message, None
         run = self.record()
         run.update(source="session-proxy", event="turn/start", thread_id=thread)
+        # The native TUI also sends temporary tasks, such as title generation,
+        # through this connection. Their instructions are not user routing work.
+        if thread in self.ephemeral:
+            run.update(status="skipped", thread_kind="ephemeral", reason="Ephemeral thread; preserve Codex's native model selection")
+            return message, run
         try:
             policy = self.settings()
+            mode = policy.get("routing_mode", "selective")
+            run.update(routing_mode=mode)
+            text, new_task = router.task_prompt(text)
             directive = re.match(r"^\[route:([a-z-]+)\](?:\s|$)", text, re.I)
             if not policy["enabled"] or (directive and directive.group(1).lower() == "off"):
-                run.update(status="skipped", reason="Automatic routing disabled for this prompt")
+                run.update(status="skipped", reason="Automatic routing disabled for this prompt",
+                           selection={"kind": "native", "profile": None, "pinned": True})
                 return message, run
-            if thread in self.manual_next and not directive:
-                self.manual_next.discard(thread)
+            explicit = explicit_request(text) if not directive else None
+            if mode == "prompt" and thread in self.manual_next and not directive and not explicit and not new_task:
                 run.update(status="skipped", reason="Manual model selection takes priority for this prompt")
                 return message, run
-            self.manual_next.discard(thread)
-            profile, reason = router.classify(text)
             current = self.current.get(thread, choice_from(params))
-            explicit = None
-            if not directive and reason.startswith("Explicit model or effort request"):
-                explicit = explicit_selection(text, await catalog(), policy, current)
+            selection = {"kind": "retain", "profile": self.phase.get(thread), "pinned": thread in self.pinned}
+            # A profile directive also validates unknown profiles while retained.
+            profile, reason = router.classify(text) if directive else (None, "")
             if explicit:
-                choice, reason = explicit, "Explicit model or effort request"
-            elif profile:
-                choice = router.select_model(profile, await catalog(), policy)
-            elif (params.get("collaborationMode") or {}).get("mode") == "plan":
-                choice = router.select_model("planning", await catalog(), policy)
-                reason = "Codex Plan mode"
-            else:
+                choice = explicit_selection(text, await catalog(), policy, current)
+                reason = "Explicit model or effort request"
+                selection = {"kind": "override", "profile": choice.get("profile"), "pinned": True}
+            elif mode == "task" and thread in self.task_selected and not directive and not new_task:
+                choice, reason = current, "Retaining model and effort for current task"
+            elif mode == "selective" and thread in self.task_selected and not directive and not new_task:
                 choice = current
+                if thread in self.pinned:
+                    reason = "Retaining explicit or resumed selection; use New task: to allow automatic selection"
+                else:
+                    profile, reason = router.selective_phase(text, self.phase.get(thread))
+                    if profile:
+                        choice = router.select_model(profile, await catalog(), policy)
+                        reason = "Work phase: " + reason
+                        selection = {"kind": "phase", "profile": profile, "pinned": False}
+                    else:
+                        reason = "Selective retention: " + reason
+            else:
+                if not directive:
+                    profile, reason = router.classify(text)
+                if profile:
+                    choice = router.select_model(profile, await catalog(), policy)
+                elif (params.get("collaborationMode") or {}).get("mode") == "plan":
+                    profile = "planning"
+                    choice = router.select_model("planning", await catalog(), policy)
+                    reason = "Codex Plan mode"
+                else:
+                    choice = current
+                selection = {"kind": "override" if directive else "new_task" if new_task else "initial",
+                             "profile": profile, "pinned": bool(directive)}
+                if new_task:
+                    reason = "New task: " + reason
             if thread in self.active:
                 run.update(status="skipped", reason="The thread became active during selection; preserve the running turn")
                 return message, run
@@ -266,13 +322,14 @@ class TurnRouter:
                 return message, run
             updated = deepcopy(message)
             set_choice(updated["params"], choice)
-            run.update(status="submitted", reason=reason, **{k: choice[k] for k in ("profile", "model", "effort") if k in choice})
+            run.update(status="submitted", reason=reason, selection=selection,
+                       **{k: choice[k] for k in ("profile", "model", "effort") if k in choice})
             return updated, run
         except Exception as error:
             run.update(status="failed", error=str(error)[:1200])
             raise
 
-    def observe_response(self, method, params, response):
+    def observe_response(self, method, params, response, decision=None):
         if "error" in response:
             return
         result = response.get("result") or {}
@@ -282,9 +339,15 @@ class TurnRouter:
             thread = result.get("thread") or {}
             if not isinstance(thread, dict):
                 return
+            self.observe_thread_kind(thread, params.get("ephemeral"))
             thread_id = thread.get("id")
-            if thread_id:
+            if isinstance(thread_id, str) and thread_id:
                 self.current[thread_id] = choice_from(dict(result, effort=result.get("reasoningEffort")))
+                if method in ("thread/resume", "thread/fork") and self.current[thread_id].get("model"):
+                    self.task_selected.add(thread_id)
+                    # Manual-choice provenance is not available after reconnect.
+                    self.pinned.add(thread_id)
+                    self.phase.pop(thread_id, None)
                 status = thread.get("status") or {}
                 if isinstance(status, dict) and status.get("type") == "active":
                     self.active.add(thread_id)
@@ -296,15 +359,44 @@ class TurnRouter:
             if thread_id and choice_from(params):
                 self.current[thread_id] = dict(self.current.get(thread_id, {}), **choice_from(params))
                 self.manual_next.add(thread_id)
+                self.task_selected.add(thread_id)
+                self.pinned.add(thread_id)
+                self.phase.pop(thread_id, None)
         elif method == "turn/start" and params.get("threadId"):
-            self.current[params["threadId"]] = dict(self.current.get(params["threadId"], {}), **choice_from(params))
+            turn = result.get("turn")
+            if isinstance(turn, dict) and isinstance(turn.get("id"), str) and turn["id"]:
+                thread_id = params["threadId"]
+                self.current[thread_id] = dict(self.current.get(thread_id, {}), **choice_from(params))
+                self.manual_next.discard(thread_id)
+                if thread_id not in self.ephemeral and self.current[thread_id].get("model"):
+                    self.task_selected.add(thread_id)
+                    selection = (decision or {}).get("selection")
+                    if selection:
+                        self.phase[thread_id] = selection["profile"]
+                        if selection["pinned"]:
+                            self.pinned.add(thread_id)
+                        else:
+                            self.pinned.discard(thread_id)
 
     def observe_notification(self, message):
         params = message.get("params") or {}
         if not isinstance(params, dict):
             return
+        if message.get("method") == "thread/started":
+            self.observe_thread_kind(params.get("thread"))
+            return
         thread = params.get("threadId")
         if not isinstance(thread, str):
+            return
+        if message.get("method") == "thread/closed":
+            self.ephemeral.discard(thread)
+            self.current.pop(thread, None)
+            self.active.discard(thread)
+            self.active_turns.pop(thread, None)
+            self.manual_next.discard(thread)
+            self.task_selected.discard(thread)
+            self.phase.pop(thread, None)
+            self.pinned.discard(thread)
             return
         turn = params.get("turn") or {}
         if not isinstance(turn, dict):
@@ -318,6 +410,30 @@ class TurnRouter:
                 self.active_turns.pop(thread, None)
 
 
+def usage_snapshot(value):
+    """Copy only valid counters, keeping the server's last/total semantics.
+
+    Notifications are snapshots, not increments. Missing usage is unknown, and
+    neither a thread total nor its latest response is a per-turn cost estimate.
+    """
+    if not isinstance(value, dict):
+        return None
+    required = ("inputTokens", "cachedInputTokens", "outputTokens", "reasoningOutputTokens", "totalTokens")
+    snapshot = {"source": "thread/tokenUsage/updated"}
+    for scope in ("last", "total"):
+        counters = value.get(scope)
+        if not isinstance(counters, dict):
+            return None
+        fields = required + (("cacheWriteInputTokens",) if "cacheWriteInputTokens" in counters else ())
+        if any(type(counters.get(field)) is not int or not 0 <= counters[field] <= 2**63 - 1 for field in fields):
+            return None
+        snapshot[scope] = {field: counters[field] for field in fields}
+    window = value.get("modelContextWindow")
+    if type(window) is int and 0 <= window <= 2**63 - 1:
+        snapshot["modelContextWindow"] = window
+    return snapshot
+
+
 class Bridge:
     def __init__(self, downstream, upstream, state, claim=router.claim_prompt):
         self.downstream, self.upstream, self.state = downstream, upstream, state
@@ -327,8 +443,36 @@ class Bridge:
         self.pending = {}
         self.turns = {}
         self.completed = {}
+        self.usage = {}
         self.prefix = "codex-router-" + uuid.uuid4().hex + "-"
         self.sequence = 0
+
+    @staticmethod
+    def remember(mapping, key, value):
+        # Retain recent turns for notifications received before acknowledgment
+        # or after completion, without growing with the conversation forever.
+        mapping.pop(key, None)
+        mapping[key] = value
+        if len(mapping) > 200:
+            mapping.pop(next(iter(mapping)))
+
+    def observe_usage(self, message):
+        if message.get("method") != "thread/tokenUsage/updated":
+            return
+        params = message.get("params")
+        if not isinstance(params, dict):
+            return
+        thread, turn = params.get("threadId"), params.get("turnId")
+        if not isinstance(thread, str) or not thread or not isinstance(turn, str) or not turn:
+            return
+        snapshot = usage_snapshot(params.get("tokenUsage"))
+        if snapshot is None:
+            return
+        key = (thread, turn)
+        self.remember(self.usage, key, snapshot)
+        run = self.turns.get(key)
+        if run and run.record.get("token_usage") != snapshot:
+            run.update(token_usage=snapshot)
 
     async def request(self, method, params):
         self.sequence += 1
@@ -387,6 +531,8 @@ class Bridge:
                     except router.RouterError:
                         metadata = {}  # Let Codex validate malformed non-routing requests.
                     metadata["threadId"] = params.get("threadId")
+                    if method in ("thread/start", "thread/resume", "thread/fork") and type(params.get("ephemeral")) is bool:
+                        metadata["ephemeral"] = params["ephemeral"]
                     self.pending[json.dumps(message["id"])] = (method, metadata, run, path)
             await self.upstream.send(message)
 
@@ -403,40 +549,44 @@ class Bridge:
                 pending = self.pending.pop(json.dumps(request_id), None)
                 if pending:
                     method, params, run, claim_path = pending
-                    self.state.observe_response(method, params, message)
+                    self.state.observe_response(method, params, message, run.record if run else None)
                     if "error" in message and claim_path is not None:
                         try:
                             claim_path.unlink(missing_ok=True)
                         except OSError:
                             pass
                         self.claim_paths.discard(claim_path)
-                    if run and run.record["status"] == "submitted":
+                    if run and run.record["status"] in ("submitted", "skipped"):
                         if "error" in message:
-                            error = message["error"]
-                            detail = error.get("message") if isinstance(error, dict) else None
-                            run.update(status="failed", error=(detail if isinstance(detail, str) else "Codex rejected turn/start")[:1200])
+                            if run.record["status"] == "submitted":
+                                error = message["error"]
+                                detail = error.get("message") if isinstance(error, dict) else None
+                                run.update(status="failed", error=(detail if isinstance(detail, str) else "Codex rejected turn/start")[:1200])
                         else:
                             result = message.get("result")
                             turn = result.get("turn") if isinstance(result, dict) else None
                             if isinstance(turn, dict) and isinstance(turn.get("id"), str) and turn["id"]:
                                 key = (params["threadId"], turn["id"])
-                                run.update(status="accepted", turn_id=turn["id"], scope="model selected before turn admission")
+                                if run.record["status"] == "submitted":
+                                    run.update(status="accepted", turn_id=turn["id"], scope="model selected before turn admission")
+                                else:
+                                    run.update(turn_id=turn["id"])
+                                self.remember(self.turns, key, run)
                                 if key in self.completed:
                                     run.update(turn_status=self.completed[key])
-                                else:
-                                    self.turns[key] = run
-                            else:
+                                if key in self.usage:
+                                    run.update(token_usage=self.usage[key])
+                            elif run.record["status"] == "submitted":
                                 run.update(status="unconfirmed", reason="Codex response did not include a turn ID")
             self.state.observe_notification(message)
+            self.observe_usage(message)
             if message.get("method") == "turn/completed" and isinstance(message.get("params"), dict):
                 params = message["params"]
                 turn = params.get("turn") or {}
                 if isinstance(turn, dict) and isinstance(params.get("threadId"), str) and isinstance(turn.get("id"), str):
                     key = (params["threadId"], turn["id"])
-                    self.completed[key] = turn.get("status")
-                    if len(self.completed) > 200:
-                        self.completed.pop(next(iter(self.completed)))
-                    run = self.turns.pop(key, None)
+                    self.remember(self.completed, key, turn.get("status"))
+                    run = self.turns.get(key)
                     if run:
                         run.update(turn_status=turn.get("status"))
             # Approval requests, tool output, and every other message pass through.
@@ -537,7 +687,13 @@ async def native_session(args):
                 argv.extend(["resume", args.thread])
             if args.task:
                 argv.extend(["--", args.task])
-            print("Automatic model routing enabled for each new prompt. Use router.py status to inspect selections.", file=sys.stderr, flush=True)
+            mode = router.policy().get("routing_mode", "selective")
+            message = {
+                "selective": "Selective routing enabled. Brief follow-ups retain settings; clear work phases can reselect. Explicit choices stay pinned until New task: or another override.",
+                "task": "Task routing enabled. Model and effort stay selected through follow-ups; use New task: to select afresh.",
+                "prompt": "Per-prompt routing enabled. Each new prompt can change model and effort.",
+            }[mode]
+            print(message + " Use router.py status to inspect selections.", file=sys.stderr, flush=True)
             child = await asyncio.create_subprocess_exec(*argv)
             return await child.wait()
         finally:
@@ -564,7 +720,7 @@ async def native_session(args):
 
 def run_auto(args):
     if args.phase or args.model or args.effort or args.failed_attempts:
-        raise router.RouterError("auto selects each prompt separately; use plain prompts or [route:PROFILE] inside Codex")
+        raise router.RouterError("auto takes routing choices from prompts; use plain prompts, New task:, or [route:PROFILE] inside Codex")
     # Diagnose access before opening the TUI; never start or replace the daemon.
     with router.Rpc(args.codex, args.sock) as rpc:
         router.live_catalog(rpc)

@@ -103,7 +103,7 @@ def failure_details(error):
     if "the destination changes the admitted node REPL review requirement" in error:
         return {
             "failure_kind": "incompatible_live_switch",
-            "next_step": "Use `router.py auto` in a normal terminal for automatic selection before each new turn, or the `run` command for one initial task. This hook cannot change the admitted review requirement within the active turn; selection must happen before Codex starts that turn.",
+            "next_step": "Use `router.py auto` in a normal terminal for task selection before turn admission, or the `run` command for one initial task. This hook cannot change the admitted review requirement within the active turn; selection must happen before Codex starts that turn.",
         }
     return {}
 
@@ -169,17 +169,19 @@ def routing_status(thread_id=None):
             rows.append(record)
     rows.sort(key=lambda r: r.get("started_at") if isinstance(r.get("started_at"), str) else "", reverse=True)
     return {"history_path": str(STATE_DIR), "thread_filter": thread_id, "runs": rows[:10], "unreadable_records": unreadable,
-            "note": "No routing records found for this selection." if not rows else "accepted means turn/start acknowledged the selected model; applied means a live update was accepted. Neither alone proves inference usage."}
+            "note": "No routing records found for this selection." if not rows else "accepted means turn/start acknowledged the selected model; applied means a live update was accepted. Neither alone proves inference usage. token_usage, when present, is the latest server-reported snapshot: total is cumulative for the thread, not additive across records or attributed to the selected model. Missing usage is unknown; these counters are not a bill."}
 
 
 def validate_policy(value):
     if not isinstance(value, dict):
         raise RouterError("policy.json must contain an object")
-    unknown = set(value) - {"enabled", "profiles"}
+    unknown = set(value) - {"enabled", "routing_mode", "profiles"}
     if unknown:
         raise RouterError("Unknown policy fields: " + ", ".join(sorted(unknown)))
     if not isinstance(value.get("enabled"), bool):
         raise RouterError("policy.enabled must be true or false")
+    if value.get("routing_mode", "selective") not in ("selective", "task", "prompt"):
+        raise RouterError('policy.routing_mode must be "selective", "task", or "prompt"')
     profiles = value.get("profiles")
     if not isinstance(profiles, dict):
         raise RouterError("policy.profiles must be an object")
@@ -212,9 +214,16 @@ def policy():
         raise RouterError(f"Cannot read {path}: {error}") from error
 
 
+def task_prompt(task):
+    """Recognize an explicit task boundary without changing the forwarded input."""
+    text = task.strip()
+    boundary = re.match(r"^(?:\[route:new\](?:\s|$)|new task:\s*)", text, re.I)
+    return (text[boundary.end():].strip(), True) if boundary else (text, False)
+
+
 def classify(task, phase=None, failed_attempts=0):
     """Conservative heuristics. Ambiguous follow-ups preserve the existing model."""
-    task = task.strip()
+    task, _ = task_prompt(task)
     directive = re.match(r"^\[route:([a-z-]+)\](?:\s|$)", task, re.I)
     if directive:
         chosen = directive.group(1).lower()
@@ -262,6 +271,41 @@ def classify(task, phase=None, failed_attempts=0):
     if re.search(r"\blist\b.*\b(?:files|directories|entries|directory contents)\b|\brun\s+pwd\b", prose):
         return "easy", "Simple directory inspection"
     return None, "Uncertain task or continuation; keep the current choice"
+
+
+def selective_phase(task, previous):
+    """Recognize a few strong phase signals, without predicting price or quality.
+
+    Levels order the shipped routing profiles, not the capability of arbitrary
+    model IDs. A short check never lowers the selection of an ongoing task.
+    """
+    prose = re.split(r"```|\n\s*>|\n\s*(?:traceback|error:|stack trace)", task.strip(), maxsplit=1, flags=re.I)[0].lower()
+    prose = re.sub(r"^(?:(?:now|next)[,:]?\s+)?(?:(?:can|could|would) you\s+|let(?:'s| us)\s+)?(?:please\s+)?", "", prose)
+    repeated = re.match(
+        r"(?:(?:two|2|three|3|multiple) (?:distinct )?(?:fixes|attempts) (?:have )?(?:failed|did not work)"
+        r"|(?:it is |it's )?still failing after (?:two|2|three|3|multiple) (?:fixes|attempts))\b", prose)
+    if repeated:
+        profile, reason = "deep-debug", "User reports repeated unsuccessful fixes"
+    else:
+        # Descriptions, explanatory questions, negations, and quoted examples do not
+        # count as an instruction to change phases. Explicit boundaries still
+        # use the broader first-task classifier.
+        if not re.match(r"(?:plan|design|implement|execute|carry out|build|refactor|develop|create|add|update|change|write|fix|debug|diagnose|investigate|trace|review|audit|summarize|summarise|extract)\b", prose):
+            return None, "No clear work-phase instruction"
+        profile, reason = classify(prose)
+    if profile is None or profile == previous:
+        return None, "Continuing the selected work phase"
+    if profile == "easy" and re.match(r"(?:summarize|summarise|extract)\b", prose):
+        quantities = re.findall(r"\b(\d{1,6})\s+(?:files|documents|reports|articles|release notes|records|pages)\b", prose)
+        if any(int(count) >= 5 for count in quantities) or re.search(r"\b(?:as a batch|in bulk)\b", prose):
+            return profile, "A substantial summary or extraction batch is requested"
+    if previous == "planning" and profile == "coding" and re.match(r"(?:implement|execute|carry out|build)\b.*\bapproved plan\b", prose):
+        return profile, "Moving from planning to implementation of the approved plan"
+    levels = {"precheck": 0, "easy": 0, "coding": 1, "review": 1, "terra": 1,
+              "planning": 2, "debugging": 2, "deep-debug": 3}
+    if profile in levels and levels[profile] > levels.get(previous, -1) and levels[profile] > 0:
+        return profile, reason
+    return None, "Retaining selection through a brief or lower-demand follow-up"
 
 
 def select_model(profile, catalog, settings, model=None, effort=None):
@@ -637,6 +681,10 @@ def hook(args, settings, run):
     if not settings["enabled"]:
         run.update(status="skipped", reason="Routing is disabled in policy.json")
         return {}
+    mode = settings.get("routing_mode", "selective")
+    if mode != "prompt":
+        run.update(status="skipped", routing_mode=mode, reason="Task and selective routing require router.py auto; the legacy hook does not change task selections")
+        return {}
     profile, reason = classify(event.get("prompt", ""))
     if not profile:
         run.update(status="skipped", reason=reason)
@@ -651,7 +699,7 @@ def hook(args, settings, run):
         result = apply_route(rpc, route, thread_id, turn_id, retry=True)
     run.update(status="applied", scope=result["scope"])
     context = (f"Model router published {result['model']} / {result['effort']} for later inference calls in this turn ({reason}). "
-               f"For a material phase change, consult the codex-model-router skill at {SKILL / 'SKILL.md'}. "
+               f"For a user-requested live change, consult the codex-model-router skill at {SKILL / 'SKILL.md'}. "
                "Do not switch again for a single test command inside a harder task.")
     return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": context}}
 
@@ -707,7 +755,7 @@ def main(argv=None):
             output["recent_routing"] = routing_status(args.thread)
         else:
             profile, reason = classify(args.task, args.phase, args.failed_attempts)
-            off = bool(re.match(r"^\[route:off\](?:\s|$)", args.task.strip(), re.I))
+            off = bool(re.match(r"^\[route:off\](?:\s|$)", task_prompt(args.task)[0], re.I))
             if off or not settings["enabled"] or (not profile and not args.model):
                 output = {"status": "unchanged", "reason": "Routing disabled" if off or not settings["enabled"] else reason}
                 if args.command == "run":
@@ -743,4 +791,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    # The lazily imported proxy must share this module's RouterError and state.
+    # Otherwise `import router` creates a second copy when this is a script.
+    sys.modules["router"] = sys.modules[__name__]
     sys.exit(main())

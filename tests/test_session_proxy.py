@@ -56,7 +56,8 @@ class TurnRoutingTests(unittest.IsolatedAsyncioTestCase):
         self.calls += 1
         return CATALOG
 
-    async def test_natural_tasks_switch_models_in_one_thread(self):
+    async def test_prompt_mode_routes_each_prompt_in_one_thread(self):
+        self.config["routing_mode"] = "prompt"
         tasks = [
             ("Plan the cache architecture", "gpt-6.1-sol", "high"),
             ("Run pwd and list the first five entries", "gpt-6-luna", "medium"),
@@ -111,11 +112,13 @@ class TurnRoutingTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(choice_from(changed["params"]), {"model": model, "effort": effort})
 
     async def test_manual_settings_take_priority_for_one_prompt(self):
+        self.config["routing_mode"] = "prompt"
         self.state.observe_response("thread/settings/update", {"threadId": "one", "model": "gpt-6-astra", "effort": "high"}, {"result": {}})
         original = prompt("Run tests")
         changed, run = await self.state.prepare(original, self.catalog)
         self.assertIs(changed, original)
         self.assertEqual(run.record["status"], "skipped")
+        self.state.observe_response("turn/start", changed["params"], {"result": {"turn": {"id": "manual"}}})
         changed, _ = await self.state.prepare(original, self.catalog)
         self.assertEqual(changed["params"]["model"], "gpt-6-luna")
 
@@ -157,6 +160,66 @@ class TurnRoutingTests(unittest.IsolatedAsyncioTestCase):
         changed, _ = await self.state.prepare(prompt("go ahead"), self.catalog)
         self.assertEqual(choice_from(changed["params"]), {"model": "gpt-5.6-terra", "effort": "medium"})
         self.assertEqual(self.calls, 0)
+
+    async def test_ephemeral_title_tasks_keep_native_settings_without_policy_or_catalog(self):
+        # This models the native title task seen in the 0.160.1 trace. "Write"
+        # previously caused the title instructions to be classified as coding.
+        title = "Generate a concise task title. Write in the user's language.\n\nUser prompt:\nlist files"
+        for method in ("thread/start", "thread/resume", "thread/fork"):
+            for metadata_source in ("response", "request"):
+                with self.subTest(method=method, metadata_source=metadata_source):
+                    thread = "temporary-" + method + metadata_source
+                    metadata = {"id": thread}
+                    params = {}
+                    if metadata_source == "response":
+                        metadata["ephemeral"] = True
+                    else:
+                        params["ephemeral"] = True
+                    self.state.observe_response(method, params, {"result": {"thread": metadata, "model": "gpt-5.6-luna"}})
+                    original = prompt(title, thread=thread)
+                    original["params"]["model"] = "gpt-5.6-luna"
+                    with patch.object(self.state, "settings", side_effect=AssertionError("Temporary tasks must not load routing policy")):
+                        changed, run = await self.state.prepare(original, self.catalog)
+                    self.assertIs(changed, original)
+                    self.assertEqual(run.record["status"], "skipped")
+                    self.assertEqual(run.record["thread_kind"], "ephemeral")
+                    self.assertNotIn("profile", run.record)
+        self.assertEqual(self.calls, 0)
+        # The adjacent user-facing conversation must still be routed normally.
+        changed, _ = await self.state.prepare(prompt("List files"), self.catalog)
+        self.assertEqual(changed["params"]["model"], "gpt-6-luna")
+
+    async def test_started_notification_can_identify_ephemeral_thread_before_response(self):
+        self.state.observe_notification({"method": "thread/started", "params": {
+            "thread": {"id": "one", "ephemeral": True}}})
+        # Partial lifecycle metadata must not erase the known thread kind.
+        self.state.observe_response("thread/start", {}, {"result": {"thread": {"id": "one"}}})
+        original = prompt("[route:coding] Write a title")
+        changed, run = await self.state.prepare(original, self.catalog)
+        self.assertIs(changed, original)
+        self.assertEqual(run.record["thread_kind"], "ephemeral")
+        self.assertEqual(self.calls, 0)
+
+    async def test_closing_a_temporary_thread_releases_only_its_state(self):
+        self.state.current["user-thread"] = {"model": "gpt-6-luna", "effort": "medium"}
+        self.state.observe_response("thread/start", {}, {"result": {"thread": {
+            "id": "one", "ephemeral": True, "status": {"type": "active"}}}})
+        self.state.manual_next.add("one")
+        self.state.active_turns["one"] = "turn-one"
+        self.state.observe_notification({"method": "thread/closed", "params": {"threadId": "one"}})
+        self.assertNotIn("one", self.state.ephemeral)
+        self.assertNotIn("one", self.state.current)
+        self.assertNotIn("one", self.state.active)
+        self.assertNotIn("one", self.state.active_turns)
+        self.assertNotIn("one", self.state.manual_next)
+        self.assertIn("user-thread", self.state.current)
+
+    async def test_failed_thread_start_does_not_mark_an_unrelated_thread_ephemeral(self):
+        self.state.observe_response("thread/start", {"ephemeral": True}, {
+            "error": {"message": "failed"}, "result": {"thread": {"id": "one", "ephemeral": True}}})
+        changed, run = await self.state.prepare(prompt("List files"), self.catalog)
+        self.assertEqual(changed["params"]["model"], "gpt-6-luna")
+        self.assertEqual(run.record["status"], "submitted")
 
 
 class QueueWire:
@@ -215,7 +278,7 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
         try:
             await client.send({"id": 1, "method": "initialize", "params": {"clientInfo": {"name": "native-cli"}}})
             self.assertEqual(await asyncio.wait_for(client.receive(), 2), {"id": 1, "result": {"userAgent": "fixture"}})
-            for text in ["Plan the cache architecture", "List files in the current directory", "Use Terra to implement pagination", "Investigate a deadlock"]:
+            for text in ["Plan the cache architecture", "New task: List files in the current directory", "Use Terra to implement pagination", "[route:deep-debug] Investigate a deadlock"]:
                 # Client and server request IDs may collide; their directions differ.
                 await client.send(prompt(text, 101))
                 received_result = False
@@ -330,7 +393,7 @@ class WireTests(unittest.IsolatedAsyncioTestCase):
 
 
 class NativeLauncherTests(unittest.TestCase):
-    def test_native_style_session_routes_seven_prompts_over_real_unix_websockets(self):
+    def test_native_style_session_routes_tasks_over_real_unix_websockets(self):
         with tempfile.TemporaryDirectory(prefix="router-smoke-", dir="/tmp") as directory:
             root = Path(directory)
             peer = Path(__file__).with_name("native_peer.py").resolve()
@@ -346,17 +409,18 @@ class NativeLauncherTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             output = json.loads(result.stdout)
             self.assertEqual(output, {"thread": "one", "selections": [
-                ["gpt-6.1-sol", "high"], ["gpt-6-luna", "medium"], ["gpt-6.1-sol", "medium"],
-                ["gpt-5.6-terra", "medium"], ["gpt-6-luna", "low"], ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
+                ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "high"],
+                ["gpt-5.6-terra", "medium"], ["gpt-5.6-terra", "medium"], ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
+                ["gpt-6-luna", "medium"], ["gpt-6-luna", "medium"], ["gpt-6.1-sol", "medium"],
             ]})
             records = [json.loads(p.read_text()) for p in (root / "state").glob("run-*.json")]
-            self.assertEqual(len(records), 7)
+            self.assertEqual(len(records), 10)
             self.assertTrue(all(r["source"] == "session-proxy" and r["status"] == "accepted" and r["turn_status"] == "completed" for r in records))
             self.assertNotIn("Plan the cache architecture", json.dumps(records))
 
 
 class FullWireConversationTests(unittest.IsolatedAsyncioTestCase):
-    async def test_independent_native_client_and_daemon_route_every_prompt_over_pipes(self):
+    async def test_independent_native_client_and_daemon_route_tasks_over_pipes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             peer = Path(__file__).with_name("native_peer.py").resolve()
@@ -380,10 +444,13 @@ class FullWireConversationTests(unittest.IsolatedAsyncioTestCase):
                 output = json.loads(stderr)
                 self.assertEqual(output["thread"], "one")
                 self.assertEqual(output["selections"], [
-                    ["gpt-6.1-sol", "high"], ["gpt-6-luna", "medium"], ["gpt-6.1-sol", "medium"],
-                    ["gpt-5.6-terra", "medium"], ["gpt-6-luna", "low"], ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
+                    ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "medium"],
+                    ["gpt-5.6-terra", "medium"], ["gpt-5.6-terra", "medium"], ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
+                    ["gpt-6-luna", "medium"], ["gpt-6.1-sol", "medium"], ["gpt-6.1-sol", "medium"],
+                    ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
+                    ["gpt-6-luna", "medium"], ["gpt-6-luna", "medium"],
                 ])
-                self.assertEqual(len(records), 7)
+                self.assertEqual(len(records), 14)
                 self.assertTrue(all(r.record["status"] == "accepted" and r.record["turn_status"] == "completed" for r in records))
                 self.assertEqual(list((root / "state").glob("*")), [], "Unexpected diagnostics or uncleaned prompt claims")
             finally:

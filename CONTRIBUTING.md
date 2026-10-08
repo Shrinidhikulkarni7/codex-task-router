@@ -22,7 +22,8 @@ For a routing or protocol change, add a regression test for the observable behav
 
 - Route only eligible new turns; keep active steering, tool output, approvals, and unrelated fields intact.
 - Update both top-level and collaboration-mode model/effort settings when routing.
-- Preserve thread context and the one-prompt priority of observed native model changes.
+- Preserve thread context, pinned explicit/native choices in selective/task modes, and one-prompt native priority in prompt mode.
+- Commit selection, phase, and pin state only after a valid turn acknowledgment; rejected requests must leave prior state usable.
 - Validate model and effort availability; expose failure without an unrequested substitute or replacement task.
 - Keep live-update compatibility and review checks enforced by Codex.
 - Preserve unrelated hooks, detect installation conflicts, and keep dry-run free of writes.
@@ -39,7 +40,7 @@ Do not weaken sandbox settings, bypass hook trust, or change admitted review req
 
 ## Change descriptions
 
-Describe the concrete trigger and changed behavior. Include relevant test results, real-terminal observations if any, and compatibility limits. Update [usage](docs/usage.md), [troubleshooting](docs/troubleshooting.md), and the [routing skill](skills/codex-model-router/SKILL.md) when behavior changes.
+Describe the concrete trigger and changed behavior. Include relevant test results, real-terminal observations if any, and compatibility limits. Update [usage](docs/usage.md), [selective rules](docs/selective-routing.md), [troubleshooting](docs/troubleshooting.md), and the [routing skill](skills/codex-model-router/SKILL.md) when behavior changes.
 
 Exclude `.router-state/`, generated caches, private prompts, credentials, and raw diagnostic dumps from commits. Keep final demo artifacts and editable media intentional; the video project documents its rebuild inputs and provenance.
 

@@ -20,6 +20,17 @@ CATALOG = [
     for name in ("gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna", "gpt-5.6-terra")
 ]
 
+# Both transports exercise the independent native_peer conversation. Keep its
+# expected outcomes shared so a locally skipped socket test cannot drift.
+CONVERSATION_SELECTIONS = [
+    ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "medium"],
+    ["gpt-5.6-terra", "medium"], ["gpt-5.6-terra", "medium"],
+    ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
+    ["gpt-6-luna", "medium"], ["gpt-6.1-sol", "medium"], ["gpt-6.1-sol", "medium"],
+    ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
+    ["gpt-6-luna", "medium"], ["gpt-6-luna", "medium"],
+]
+
 
 class MemoryRun:
     def __init__(self):
@@ -408,13 +419,9 @@ class NativeLauncherTests(unittest.TestCase):
                 self.skipTest("Host sandbox denies binding Unix sockets; the full wire conversation is tested through pipes")
             self.assertEqual(result.returncode, 0, result.stderr)
             output = json.loads(result.stdout)
-            self.assertEqual(output, {"thread": "one", "selections": [
-                ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "high"],
-                ["gpt-5.6-terra", "medium"], ["gpt-5.6-terra", "medium"], ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
-                ["gpt-6-luna", "medium"], ["gpt-6-luna", "medium"], ["gpt-6.1-sol", "medium"],
-            ]})
+            self.assertEqual(output, {"thread": "one", "selections": CONVERSATION_SELECTIONS})
             records = [json.loads(p.read_text()) for p in (root / "state").glob("run-*.json")]
-            self.assertEqual(len(records), 10)
+            self.assertEqual(len(records), len(CONVERSATION_SELECTIONS))
             self.assertTrue(all(r["source"] == "session-proxy" and r["status"] == "accepted" and r["turn_status"] == "completed" for r in records))
             self.assertNotIn("Plan the cache architecture", json.dumps(records))
 
@@ -443,14 +450,8 @@ class FullWireConversationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(process.returncode, 0, stderr)
                 output = json.loads(stderr)
                 self.assertEqual(output["thread"], "one")
-                self.assertEqual(output["selections"], [
-                    ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "high"], ["gpt-6.1-sol", "medium"],
-                    ["gpt-5.6-terra", "medium"], ["gpt-5.6-terra", "medium"], ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
-                    ["gpt-6-luna", "medium"], ["gpt-6.1-sol", "medium"], ["gpt-6.1-sol", "medium"],
-                    ["gpt-6-astra", "xhigh"], ["gpt-6-astra", "xhigh"],
-                    ["gpt-6-luna", "medium"], ["gpt-6-luna", "medium"],
-                ])
-                self.assertEqual(len(records), 14)
+                self.assertEqual(output["selections"], CONVERSATION_SELECTIONS)
+                self.assertEqual(len(records), len(CONVERSATION_SELECTIONS))
                 self.assertTrue(all(r.record["status"] == "accepted" and r.record["turn_status"] == "completed" for r in records))
                 self.assertEqual(list((root / "state").glob("*")), [], "Unexpected diagnostics or uncleaned prompt claims")
             finally:

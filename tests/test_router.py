@@ -111,7 +111,7 @@ class RoutingTests(IsolatedStateTests):
         self.assertEqual(router.classify("", "precheck", 2)[0], "precheck")
 
     def test_available_model_and_effort(self):
-        config = router.policy()
+        config = router.policy(include_local=False)
         self.assertEqual(router.select_model("planning", CATALOG, config)["model"], "gpt-6.1-sol")
         self.assertEqual(router.select_model("planning", [model("gpt-6-sol")], config)["model"], "gpt-6-sol")
         self.assertEqual(router.select_model("terra", CATALOG, config)["model"], "gpt-5.6-terra")
@@ -121,13 +121,13 @@ class RoutingTests(IsolatedStateTests):
 
     def test_explicit_model_is_never_silently_substituted(self):
         with self.assertRaises(router.RouterError):
-            router.select_model("coding", CATALOG, router.policy(), "missing-model")
-        selected = router.select_model("coding", CATALOG, router.policy(), "gpt-6-luna", "high")
+            router.select_model("coding", CATALOG, router.policy(include_local=False), "missing-model")
+        selected = router.select_model("coding", CATALOG, router.policy(include_local=False), "gpt-6-luna", "high")
         self.assertEqual((selected["model"], selected["effort"]), ("gpt-6-luna", "high"))
 
     def test_update_only_changes_current_turn_model_and_effort(self):
         rpc = FakeRpc()
-        choice = router.select_model("debugging", CATALOG, router.policy())
+        choice = router.select_model("debugging", CATALOG, router.policy(include_local=False))
         result = router.apply_route(rpc, choice, "thread-one")
         self.assertEqual(result["status"], "applied")
         self.assertEqual(rpc.calls, [
@@ -170,7 +170,7 @@ class RoutingTests(IsolatedStateTests):
     def test_hook_output_confirms_publication_without_claiming_inference(self):
         event = {"hook_event_name": "UserPromptSubmit", "session_id": "thread-one", "turn_id": "turn-one", "prompt": "Run unit tests"}
         out = io.StringIO()
-        with patch.object(router, "policy", return_value=dict(router.policy(), routing_mode="prompt")), patch.object(router, "Rpc", return_value=FakeRpc()), patch.object(sys, "stdin", io.StringIO(json.dumps(event))), redirect_stdout(out):
+        with patch.object(router, "policy", return_value=dict(router.policy(include_local=False), routing_mode="prompt")), patch.object(router, "Rpc", return_value=FakeRpc()), patch.object(sys, "stdin", io.StringIO(json.dumps(event))), redirect_stdout(out):
             self.assertEqual(router.main(["hook"]), 0)
         result = json.loads(out.getvalue())
         self.assertEqual(result["hookSpecificOutput"]["hookEventName"], "UserPromptSubmit")
@@ -179,7 +179,7 @@ class RoutingTests(IsolatedStateTests):
     def test_hook_connection_failure_does_not_block_work(self):
         event = {"hook_event_name": "UserPromptSubmit", "session_id": "t", "turn_id": "u", "prompt": "Run unit tests"}
         out = io.StringIO()
-        with patch.object(router, "policy", return_value=dict(router.policy(), routing_mode="prompt")), patch.object(router, "Rpc", side_effect=PermissionError("denied")), patch.object(sys, "stdin", io.StringIO(json.dumps(event))), redirect_stdout(out):
+        with patch.object(router, "policy", return_value=dict(router.policy(include_local=False), routing_mode="prompt")), patch.object(router, "Rpc", side_effect=PermissionError("denied")), patch.object(sys, "stdin", io.StringIO(json.dumps(event))), redirect_stdout(out):
             self.assertEqual(router.main(["hook"]), 0)
         result = json.loads(out.getvalue())
         self.assertIn("did not confirm a switch", result["systemMessage"])
@@ -237,7 +237,7 @@ class DiagnosticsTests(IsolatedStateTests):
         event = {"hook_event_name": "UserPromptSubmit", "session_id": "thread-one", "turn_id": "turn-one", "prompt": prompt}
         event.update(event_fields)
         out = io.StringIO()
-        with patch.object(router, "policy", return_value=dict(router.policy(), routing_mode="prompt")), patch.object(router, "Rpc", return_value=rpc or FakeRpc()), patch.object(sys, "stdin", io.StringIO(json.dumps(event))), redirect_stdout(out):
+        with patch.object(router, "policy", return_value=dict(router.policy(include_local=False), routing_mode="prompt")), patch.object(router, "Rpc", return_value=rpc or FakeRpc()), patch.object(sys, "stdin", io.StringIO(json.dumps(event))), redirect_stdout(out):
             self.assertEqual(router.main(["hook"]), 0)
         return json.loads(out.getvalue())
 

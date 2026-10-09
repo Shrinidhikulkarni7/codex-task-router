@@ -32,14 +32,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Compile Python sources
-        run: python -m compileall -q install.py skills/codex-model-router/scripts evals tests
-      - name: Verify CLI entry points
-        run: |
-          python install.py --help
-          python skills/codex-model-router/scripts/router.py --help
-          python install.py --codex-home "$RUNNER_TEMP/router-install-preview" --dry-run
-          python evals/task_quality.py
-          python evals/laya_compare.py
-      - name: Test without Codex, credentials, dependencies, or inference
-        run: python -m unittest discover -s tests -v
+      - name: Check isolated defaults, protocol behavior, docs, and skill distribution
+        run: python scripts/check.py
+      - name: Build the standalone skill
+        run: python scripts/build_skill.py

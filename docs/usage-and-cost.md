@@ -1,6 +1,6 @@
 # Tokens, cache reuse, and routing
 
-The default is now **selective switching**: keep suitable settings for brief follow-ups, reconsider on recognized work-phase instructions, and honor explicit choices. Optional `task` mode keeps a selection until a boundary/override; `prompt` mode retains the earlier per-prompt strategy. All use one conversation without automatic worker creation. The default classifier makes no inference call; optional [Laya modes](../skills/codex-model-router/references/laya.md) add local inference time and resource usage, including in comparison-only mode. See [the exact rules](selective-routing.md).
+The default is **selective switching**: keep suitable settings for brief follow-ups, reconsider on recognized work-phase instructions, and honor explicit choices. Optional `task` mode keeps a selection until a boundary/override; `prompt` mode retains per-prompt classification. All use one conversation without automatic worker creation. The default classifier makes no inference call; optional [Laya modes](../skills/codex-model-router/references/laya.md) add local inference time and resource usage, including in comparison-only mode. See [the exact rules](selective-routing.md).
 
 The [manual comparison below](#observed-model-switch-comparison-2026-10-07) found more uncached input after each model change than on its following repeat. That supports avoiding unnecessary switches, but does not prove that a stable model is always cheaper. Model rates, total work, retries, and correctness also matter. No measured cheapest-strategy claim follows from these trials.
 
@@ -111,7 +111,7 @@ The offline regression in `tests/test_task_routing.py` feeds the same eight prom
 | Optional task mode | 0 | 0 | 1 |
 | Opt-in prompt mode | 5 | 6 | 7 |
 
-The catalog counts exclude the common startup probe. Selective mode adjusts effort at approved-plan implementation and investigation in this sequence, retaining settings for the short checks. Other sequences can change models; the selective tests cover Luna-to-Sol-to-Astra escalation and a summary-batch downgrade. This is **not a token or cost benchmark**. The sandbox denied live control-socket access. The earlier [user-terminal sequence](#live-task-retention-verification-2026-10-08) verified task-mode retention and usage, but did not exercise the newly added selective rules. There is no controlled live strategy comparison.
+The catalog counts exclude the common startup probe. Selective mode adjusts effort at approved-plan implementation and investigation in this sequence, retaining settings for the short checks. Other sequences can change models; the selective tests cover Luna-to-Sol-to-Astra escalation and a summary-batch downgrade. This is **not a token or cost benchmark**. The sandbox denied live control-socket access. The earlier [native-terminal sequence](#live-task-retention-verification-2026-10-08) verified task-mode retention and usage, but did not exercise the newly added selective rules. There is no controlled live strategy comparison.
 
 ## Compare strategies with live tasks
 
@@ -127,7 +127,7 @@ For an explicitly fixed-model baseline, select native `/model` and prefix every 
 
 ## Observed model-switch comparison: 2026-10-07
 
-The user ran eight turns in one fresh `auto` conversation using CLI 0.160.1: Luna twice, Sol 6.1 twice, Terra 5.6 twice, then Astra twice. All requested medium effort and the same task, changing only `MODEL_ID`:
+The comparison submitted eight turns in one fresh `auto` conversation using CLI 0.160.1: Luna twice, Sol 6.1 twice, Terra 5.6 twice, then Astra twice. All requested medium effort and the same task, changing only `MODEL_ID`:
 
 ```text
 Use MODEL_ID with medium reasoning. Run pwd and list the first five entries in the current directory. Do not edit files. Return only the command output.
@@ -160,7 +160,7 @@ This is one ordered sequence on one simple task, recorded before task retention 
 
 ## Live task-retention verification: 2026-10-08
 
-The user ran six prompts in the same `auto` conversation after an initial Sol 6.1 / medium selection. A baseline of the routing records and cumulative usage was saved before the sequence. The unprefixed prompt was identical for all six steps except for the deliberate routing prefixes:
+The retention check submitted six prompts in the same `auto` conversation after an initial Sol 6.1 / medium selection. A baseline of the routing records and cumulative usage was saved before the sequence. The unprefixed prompt was identical for all six steps except for the deliberate routing prefixes:
 
 ```text
 Run pwd and list the first five entries. Use `pwd && ls -1A | head -n 5`. Do not edit files. Return only the command output.
@@ -190,7 +190,7 @@ Across these six turns, the main thread reported **311,315 input tokens**, inclu
 
 Each switch coincided with two new developer-instruction messages in the rollout. First-call input grew from 21,483 on Sol to 25,568 on Luna and 30,347 on returning to Sol. No compaction was recorded. This check does not isolate the effects of model changes, instruction updates, conversation growth, or cache state.
 
-This verifies the tested retention, boundary, and override behavior in the user's terminal, with local request and usage evidence. It supports avoiding unnecessary switches. It does not independently establish backend model identity, dollar savings, a causal switching penalty, or general correctness on larger tasks. There was no randomized order, all-one-model control, prompt-mode comparison, or subagent trial. The agent read the existing local logs; it did not start these live tasks or bypass the blocked control socket.
+This verifies the tested retention, boundary, and override behavior in a native terminal, with local request and usage evidence. It supports avoiding unnecessary switches. It does not independently establish backend model identity, dollar savings, a causal switching penalty, or general correctness on larger tasks. There was no randomized order, all-one-model control, prompt-mode comparison, or subagent trial. Verification used saved native-terminal records; the restricted verification environment could not launch live tasks through the control socket.
 
 ## Coverage and limits
 
@@ -198,6 +198,6 @@ This verifies the tested retention, boundary, and override behavior in the user'
 - Snapshots are matched by both thread and turn ID. Notifications may arrive before acknowledgment or after completion; up to 200 recent entries per connection are retained to handle that ordering. Events outside that window or after disconnect can be missed.
 - The router does not sum child-agent threads into a parent. A delegation comparison must account for workers separately through usage reporting that covers them. Parent-only counters cannot establish the cost of the full workflow.
 - `run`, ordinary Codex windows, `apply`, and the legacy hook do not collect these snapshots. New `auto` sessions collect them even when routing is disabled or skipped. `status` shows ten recent records from at most 200 local records.
-- The field names were checked against the schema generated by local Codex 0.160.1. A user-run file-listing task subsequently produced counters matching its local rollout, and a further user-provided live status confirmed the ephemeral-thread exclusion. Simulated protocol tests cover both behaviors; the development sandbox prevents an agent-launched live test. See [compatibility evidence](compatibility.md).
+- The field names were checked against the schema generated by local Codex 0.160.1. Native file-listing records contained counters matching the local rollout, and a separate recorded run confirmed the ephemeral-thread exclusion. Simulated protocol tests cover both behaviors; live execution and record inspection were performed in separate environments. See [compatibility evidence](compatibility.md).
 
 The event is documented in the [official App Server notifications](https://learn.chatgpt.com/docs/app-server#notifications). Protocol availability does not make the router an independent billing meter.

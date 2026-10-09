@@ -2,6 +2,10 @@
 
 The router has three integration paths. `auto` selects settings before turn admission; default selective mode retains brief follow-ups and can reselect on recognized phase instructions. Optional task mode retains until a boundary/override; prompt mode reclassifies each prompt. `run` selects startup settings for one new session. The optional hook and `apply` use a live-update method after a turn has already started. The entry point is [router.py](../skills/codex-model-router/scripts/router.py); the automatic bridge is [session_proxy.py](../skills/codex-model-router/scripts/session_proxy.py).
 
+## Configuration
+
+The installed skill's `policy.json` supplies shared defaults. An optional `policy.local.json` merges personal fields before validation; it is ignored by Git and excluded from archives. Objects merge recursively and arrays replace inherited values. `config` shows effective settings without a service connection. See [the configuration contract](../skills/codex-model-router/references/configuration.md).
+
 ## Automatic session
 
 ```mermaid

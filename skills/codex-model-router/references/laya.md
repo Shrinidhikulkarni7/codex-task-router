@@ -16,9 +16,9 @@ Only `router.py auto` uses this classifier setting. `preview`, `run`, `apply`, t
 
 ## Run a local service
 
-Laya runs separately from the standard-library router. Install it in a dedicated environment, following [upstream installation instructions](https://github.com/NandhaKishorM/laya#installation-details). The adapter targets the extended HTTP contract inspected in the upstream 0.4.1 source. A subsequent user-run local service comparison exercised that contract with real model responses; see the [results and limits](../../../docs/laya-evaluation.md).
+Laya runs separately from the standard-library router. Install it in a dedicated environment, following [upstream installation instructions](https://github.com/NandhaKishorM/laya#installation-details). The adapter targets the extended HTTP contract inspected in the upstream 0.4.1 source. The adapter has been exercised with real local service responses; see the [recorded evaluation](https://github.com/Shrinidhikulkarni7/codex-task-router/blob/main/docs/laya-evaluation.md).
 
-For example, from the repository root:
+For example, from a dedicated working directory (the repository root is convenient):
 
 ```sh
 python3 -m venv .venv
@@ -36,7 +36,7 @@ Use canonical checkpoint names (`english`, `multilingual`, `typed-decisions`) or
 
 ## First comparison
 
-In another terminal, from the repository root, list the cases without contacting any service:
+The evaluation tools belong to the full [repository](https://github.com/Shrinidhikulkarni7/codex-task-router), not the standalone skill archive. In another terminal, from the repository root, list the cases without contacting any service:
 
 ```sh
 python3 evals/laya_compare.py
@@ -61,7 +61,7 @@ python3 evals/laya_compare.py --run --checkpoint multilingual --threshold 0.9 \
 
 These commands perform local Laya inference only. They do not submit Codex tasks, change live settings, or update policy. Reports are created owner-only; existing output paths are refused before inference. Service errors stop the comparison without retries. Exit 0 means all effective decisions matched the rubric, exit 1 means a mismatch, and exit 2 means an input/service/output error. A match count includes deterministic retention and fallback decisions; inspect `usable_recommendations` and each classifier status before attributing results to Laya.
 
-The 24 authored cases deliberately stress known rule weaknesses, including paraphrases, misleading domain words, and follow-ups. They are not a representative accuracy benchmark, and become development data if used for tuning. Reports contain IDs, expected/effective profiles, probabilities and source/corpus hashes, without copying prompts. The [first user-run local report and analysis](../../../docs/laya-evaluation.md) are now committed: 22 responses passed adapter checks, but none reached the provisional 0.8 probability threshold. The development agent still cannot contact the service because its sandbox denies loopback access; it can inspect and replay saved reports.
+The 24 authored cases deliberately stress known rule weaknesses, including paraphrases, misleading domain words, and follow-ups. They are not a representative accuracy benchmark, and become development data if used for tuning. Reports contain IDs, expected/effective profiles, probabilities and source/corpus hashes, without copying prompts. The [recorded local evaluation](https://github.com/Shrinidhikulkarni7/codex-task-router/blob/main/docs/laya-evaluation.md) contains 22 validated responses, none reaching the provisional 0.8 threshold. Its offline replay preserves the original runtime and corpus provenance.
 
 To inspect different thresholds without making another inference request:
 
@@ -73,17 +73,19 @@ This verifies the saved corpus/source hashes and original decisions before repla
 
 ## Enable session comparisons
 
-In [policy.json](../policy.json), set the top-level classifier object:
+Add the following override to `policy.local.json` beside [policy.json](../policy.json). Merge it into any existing local preferences; see [configuration](configuration.md):
 
 ```json
-"classifier": {
-  "mode": "shadow",
-  "endpoint": "http://127.0.0.1:8000/v1/systemone",
-  "model": "typed-decisions",
-  "timeout_ms": 2000,
-  "max_input_chars": 4000,
-  "min_probability": 0.8,
-  "api_key_env": "LAYA_API_KEY"
+{
+  "classifier": {
+    "mode": "shadow",
+    "endpoint": "http://127.0.0.1:8000/v1/systemone",
+    "model": "typed-decisions",
+    "timeout_ms": 2000,
+    "max_input_chars": 4000,
+    "min_probability": 0.8,
+    "api_key_env": "LAYA_API_KEY"
+  }
 }
 ```
 

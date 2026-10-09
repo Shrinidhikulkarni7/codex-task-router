@@ -1,14 +1,14 @@
-# First local Laya evaluation: 2026-10-09
+# Laya evaluation: 2026-10-09
 
 The local service and adapter worked, but this run does **not** justify enabling active classification. All 22 model responses passed the adapter's response checks; their highest probabilities were below the provisional 0.8 threshold. Two other cases skipped inference as intended. Shadow mode is the next comparison step; the distributed policy remains `rules`.
 
 ## Evidence and scope
 
-The user started Laya outside the development agent's restricted environment, warmed the service with a two-option request, and ran `evals/laya_compare.py` on all 24 authored cases. The agent then inspected the saved report and verified its corpus and router/classifier source hashes. The [recorded report](../evals/results/laya-typed-decisions-20261009.json) contains case IDs, decisions, probabilities, timings, and provenance; the case text is in the [public corpus](../evals/laya_cases.jsonl).
+A local Laya service was warmed with a two-option request before `evals/laya_compare.py` ran all 24 authored cases. The saved report was checked against its corpus and router/classifier source hashes. The [recorded report](../evals/results/laya-typed-decisions-20261009.json) contains case IDs, decisions, probabilities, timings, and provenance; the case text is in the [public corpus](../evals/laya_cases.jsonl).
 
 The report requested `typed-decisions`, and the adapter validated the returned checkpoint name. Following the run, the installed environment reported Laya 0.4.1, PyTorch 2.14.1, Transformers 5.19.0, and Python 3.11.4 on arm64 macOS. The comparison did not record a loaded-weight revision or compute device, so it cannot establish those details.
 
-This corpus intentionally stresses weaknesses of the Python rules. It is development data, not a representative sample of Codex tasks or a held-out calibration set. The user ran the actual HTTP inference; the agent's sandbox still denied loopback connections. The subsequent threshold comparisons are **offline replays of saved probabilities**, not further model runs.
+This corpus intentionally stresses weaknesses of the Python rules. It is development data, not a representative sample of Codex tasks or a held-out calibration set. HTTP inference ran in a separate terminal because the restricted verification environment denied loopback connections. The subsequent threshold comparisons are **offline replays of saved probabilities**, not further model runs.
 
 ## Results
 
@@ -35,6 +35,9 @@ The earlier two-option warm-up returned `easy` at 0.797. It used different instr
 ## Reproduce the analysis without inference
 
 ```sh
+# Use the recorded runtime revision in a separate checkout.
+git worktree add --detach ../codex-router-evidence 4b6ef0b363e4c0c63b6f928837f301f67688fbe0
+cd ../codex-router-evidence
 python3 evals/laya_replay.py evals/results/laya-typed-decisions-20261009.json
 
 python3 evals/laya_replay.py evals/results/laya-typed-decisions-20261009.json \
@@ -47,7 +50,7 @@ If a later code change makes the source hashes differ, use the original trusted 
 
 ## Native shadow-session check
 
-The user subsequently launched `router.py auto` with local shadow mode and requested a three-sentence README summary. The agent inspected both the routing history and the matching session turn context/completion record.
+A native `router.py auto` session requested a three-sentence README summary in shadow mode. Routing history was checked against the matching session turn context and completion record.
 
 | Attempt | Configured deadline | Classifier elapsed time | Classifier result | Codex selection and completion |
 | --- | ---: | ---: | --- | --- |
@@ -56,7 +59,7 @@ The user subsequently launched `router.py auto` with local shadow mode and reque
 
 The retry's `classifier.mode` was `shadow` and `used` was false. The Laya candidate agreed with the rules, but its probability was below the unchanged 0.8 gate. `low_probability` here is a validated response declined by the probability gate, not a transport failure. The native session context agreed with the requested Luna/medium settings, and the three-sentence answer was recorded as completed.
 
-This verifies a real native shadow response and the earlier timeout fallback for these two requests. It does not establish general classifier accuracy or independent backend model attribution. Because the successful response took less than the original two-second deadline, the retry does not prove that raising the limit fixed the delay. The cause of the first timeout remains unestablished. The local timeout was restored to the default two seconds after the diagnostic retry; shadow mode remains enabled locally, while the distributed policy remains `rules`. Raw thread identifiers, session content, and usage records stay in private local verification files.
+This verifies a real native shadow response and the earlier timeout fallback for these two requests. It does not establish general classifier accuracy or independent backend model attribution. Because the successful response took less than the original two-second deadline, the retry does not prove that raising the limit fixed the delay. The cause of the first timeout remains unestablished. The local timeout was restored to the default two seconds after the diagnostic retry; the distributed policy remains `rules`. Raw thread identifiers, session content, and usage records stay in private local verification files.
 
 ## Next validation
 

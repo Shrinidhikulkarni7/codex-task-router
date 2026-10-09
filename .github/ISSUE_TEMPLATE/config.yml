@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Setup and troubleshooting
+    url: https://github.com/Shrinidhikulkarni7/codex-task-router/blob/main/docs/troubleshooting.md
+    about: Check connection, model availability, and routing behavior first.
+  - name: Security reporting
+    url: https://github.com/Shrinidhikulkarni7/codex-task-router/blob/main/SECURITY.md
+    about: Report sensitive issues privately using the documented channel.

@@ -17,7 +17,7 @@ from session_proxy import Bridge, TurnRouter, WebSocket, choice_from
 
 class PolicyTests(unittest.TestCase):
     def test_invalid_policy_shapes_are_actionable(self):
-        original = router.policy()
+        original = router.policy(include_local=False)
         cases = [([], "object"), ({}, "enabled"), (dict(original, enabled=1), "enabled"),
                  (dict(original, typo=True), "Unknown policy"), (dict(original, profiles=[]), "profiles")]
         for field, value in (("models", "gpt-6-luna"), ("models", []), ("models", [""]),
@@ -227,7 +227,7 @@ class ProxyHardeningTests(unittest.IsolatedAsyncioTestCase):
         async def catalog():
             return CATALOG
 
-        state = TurnRouter(record=MemoryRun)
+        state = TurnRouter(settings=lambda: router.policy(include_local=False), record=MemoryRun)
         changed, _ = await state.prepare(prompt("Use xhigh effort to implement pagination"), catalog)
         self.assertEqual(choice_from(changed["params"]), {"model": "gpt-6-astra", "effort": "xhigh"})
 
@@ -237,11 +237,11 @@ class ProxyHardeningTests(unittest.IsolatedAsyncioTestCase):
 
         message = prompt("Run tests")
         message["params"]["collaborationMode"]["settings"] = None
-        changed, _ = await TurnRouter(record=MemoryRun).prepare(message, catalog)
+        changed, _ = await TurnRouter(settings=lambda: router.policy(include_local=False), record=MemoryRun).prepare(message, catalog)
         self.assertEqual(choice_from(changed["params"]), {"model": "gpt-6-luna", "effort": "low"})
 
     async def test_stale_completion_does_not_make_a_newer_turn_routable(self):
-        state = TurnRouter(record=MemoryRun)
+        state = TurnRouter(settings=lambda: router.policy(include_local=False), record=MemoryRun)
         state.observe_notification({"method": "turn/started", "params": {"threadId": "one", "turn": {"id": "new"}}})
         state.observe_notification({"method": "turn/completed", "params": {"threadId": "one", "turn": {"id": "old"}}})
         self.assertIn("one", state.active)
@@ -251,7 +251,7 @@ class ProxyHardeningTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(run)
 
     async def test_idle_resume_clears_stale_active_state(self):
-        state = TurnRouter(record=MemoryRun)
+        state = TurnRouter(settings=lambda: router.policy(include_local=False), record=MemoryRun)
         state.active.add("one")
         state.observe_response("thread/resume", {}, {"result": {"thread": {"id": "one", "status": {"type": "idle"}}}})
         self.assertNotIn("one", state.active)
@@ -259,7 +259,7 @@ class ProxyHardeningTests(unittest.IsolatedAsyncioTestCase):
     async def test_bad_input_is_rejected_without_killing_the_bridge(self):
         client, downstream = wire_pair()
         upstream, server = wire_pair()
-        bridge = Bridge(downstream, upstream, TurnRouter(record=MemoryRun), claim=lambda *_: None)
+        bridge = Bridge(downstream, upstream, TurnRouter(settings=lambda: router.policy(include_local=False), record=MemoryRun), claim=lambda *_: None)
         task = asyncio.create_task(bridge.run())
         try:
             for params in (["invalid"], {"threadId": []}, {"threadId": "one", "input": [None]},
@@ -280,7 +280,7 @@ class ProxyHardeningTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory, patch.object(router, "STATE_DIR", Path(directory) / "state"):
             client, downstream = wire_pair()
             upstream, server = wire_pair()
-            bridge = Bridge(downstream, upstream, TurnRouter(record=MemoryRun))
+            bridge = Bridge(downstream, upstream, TurnRouter(settings=lambda: router.policy(include_local=False), record=MemoryRun))
             task = asyncio.create_task(bridge.run())
             try:
                 await client.send(prompt("Run tests", 12))
@@ -307,7 +307,7 @@ class ProxyHardeningTests(unittest.IsolatedAsyncioTestCase):
             records.append(value)
             return value
 
-        bridge = Bridge(downstream, upstream, TurnRouter(record=record), claim=lambda *_: None)
+        bridge = Bridge(downstream, upstream, TurnRouter(settings=lambda: router.policy(include_local=False), record=record), claim=lambda *_: None)
         task = asyncio.create_task(bridge.run())
         try:
             await client.send(prompt("Run tests", 12))

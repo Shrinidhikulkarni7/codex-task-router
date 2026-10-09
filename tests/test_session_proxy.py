@@ -52,7 +52,7 @@ def prompt(text, request_id=1, thread="one", mode="default"):
 
 class TurnRoutingTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.config = router.policy()
+        self.config = router.policy(include_local=False)
         self.runs = []
 
         def record():
@@ -260,7 +260,7 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
             records.append(run)
             return run
 
-        bridge = Bridge(downstream, upstream, TurnRouter(record=record), claim=lambda *_: None)
+        bridge = Bridge(downstream, upstream, TurnRouter(settings=lambda: router.policy(include_local=False), record=record), claim=lambda *_: None)
         observed = []
         approval = {"id": 101, "method": "item/commandExecution/requestApproval", "params": {"threadId": "one", "command": "test-command", "availableDecisions": ["decline", "accept"]}}
         decision = {"id": 101, "result": {"decision": "decline"}}
@@ -320,7 +320,7 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
     async def test_catalog_failure_is_returned_without_starting_a_task(self):
         client, downstream = wire_pair()
         upstream, server = wire_pair()
-        bridge = Bridge(downstream, upstream, TurnRouter(record=MemoryRun), claim=lambda *_: None)
+        bridge = Bridge(downstream, upstream, TurnRouter(settings=lambda: router.policy(include_local=False), record=MemoryRun), claim=lambda *_: None)
         task = asyncio.create_task(bridge.run())
         try:
             await client.send(prompt("List files", 5))
@@ -413,7 +413,7 @@ class NativeLauncherTests(unittest.TestCase):
             executable.chmod(0o700)
             scripts = str(Path(router.__file__).parent)
             # Configure only router diagnostics, never HOME or Codex's user config.
-            program = f"import sys; sys.path.insert(0, {scripts!r}); import router; from pathlib import Path; router.STATE_DIR = Path({str(root / 'state')!r}); sys.exit(router.main(sys.argv[1:]))"
+            program = f"import sys; sys.path.insert(0, {scripts!r}); import router; from pathlib import Path; router.STATE_DIR = Path({str(root / 'state')!r}); original_policy = router.policy; router.policy = lambda: original_policy(include_local=False); sys.exit(router.main(sys.argv[1:]))"
             result = subprocess.run([sys.executable, "-c", program, "auto", "--codex", str(executable)], capture_output=True, text=True, timeout=20)
             if result.returncode == 1 and "Cannot create the local routing socket: [Errno 1] Operation not permitted" in result.stderr:
                 self.skipTest("Host sandbox denies binding Unix sockets; the full wire conversation is tested through pipes")
@@ -444,7 +444,7 @@ class FullWireConversationTests(unittest.IsolatedAsyncioTestCase):
 
             try:
                 with patch.object(router, "STATE_DIR", root / "state"):
-                    await asyncio.wait_for(serve_connection(process.stdout, process.stdin, SimpleNamespace(codex=str(executable), sock=None), TurnRouter(record=record)), 10)
+                    await asyncio.wait_for(serve_connection(process.stdout, process.stdin, SimpleNamespace(codex=str(executable), sock=None), TurnRouter(settings=lambda: router.policy(include_local=False), record=record)), 10)
                 await asyncio.wait_for(process.wait(), 2)
                 stderr = (await process.stderr.read()).decode()
                 self.assertEqual(process.returncode, 0, stderr)

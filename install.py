@@ -95,7 +95,7 @@ def install(codex_home, uninstall=False, dry_run=False, legacy_hook=False):
     preview["next_step"] = ("Router removed; unrelated hooks preserved." if uninstall else
                             f"Run `{launch}` in your terminal for selective routing; brief follow-ups retain settings and recognized work phases can reselect.")
     if legacy_hook:
-        preview["legacy_hook_next_step"] = 'The hook skips settings changes in selective and task modes. To opt in, set "routing_mode": "prompt" in policy.json, run `codex features enable step_model_switching`, start a new Codex session, and open /hooks to review/trust the optional hook. Live changes remain subject to Codex compatibility checks.'
+        preview["legacy_hook_next_step"] = 'The hook skips settings changes in selective and task modes. To opt in, set "routing_mode": "prompt" in policy.local.json, run `codex features enable step_model_switching`, start a new Codex session, and open /hooks to review/trust the optional hook. Live changes remain subject to Codex compatibility checks.'
     if dry_run:
         return preview
     made_link = False

@@ -214,12 +214,35 @@ def validate_policy(value):
     return value
 
 
-def policy():
-    path = SKILL / "policy.json"
+def read_policy(path):
     try:
-        return validate_policy(json.loads(path.read_text(encoding="utf-8")))
+        value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         raise RouterError(f"Cannot read {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise RouterError(f"{path.name} must contain an object")
+    return value
+
+
+def merge_policy(base, override):
+    """Merge objects; scalars and arrays replace their inherited values."""
+    result = dict(base)
+    for key, value in override.items():
+        result[key] = (merge_policy(result[key], value)
+                       if isinstance(result.get(key), dict) and isinstance(value, dict)
+                       else value)
+    return result
+
+
+def policy(include_local=True):
+    settings = validate_policy(read_policy(SKILL / "policy.json"))
+    local = SKILL / "policy.local.json"
+    if include_local and (local.exists() or local.is_symlink()):
+        try:
+            settings = validate_policy(merge_policy(settings, read_policy(local)))
+        except RouterError as error:
+            raise RouterError(f"Invalid local policy {local}: {error}") from error
+    return settings
 
 
 def task_prompt(task):
@@ -784,7 +807,7 @@ def hook(args, settings, run):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("auto", "preview", "apply", "doctor", "status", "hook", "run"))
+    parser.add_argument("command", choices=("auto", "preview", "apply", "doctor", "status", "config", "hook", "run"))
     parser.add_argument("task", nargs="?", default="")
     parser.add_argument("--phase", choices=PROFILES)
     parser.add_argument("--failed-attempts", type=int, default=0)
@@ -803,6 +826,14 @@ def main(argv=None):
             print(json.dumps(routing_status(args.thread), indent=2))
             return 0
         settings = policy()
+        if args.command == "config":
+            from laya_classifier import config
+            settings["classifier"] = config(settings.get("classifier"))
+            print(json.dumps({"defaults": str(SKILL / "policy.json"),
+                              "local_override": str(SKILL / "policy.local.json"),
+                              "local_override_loaded": (SKILL / "policy.local.json").exists(),
+                              "policy": settings}, indent=2))
+            return 0
         if args.failed_attempts < 0:
             raise RouterError("Failed attempts cannot be negative")
         if args.command == "auto":

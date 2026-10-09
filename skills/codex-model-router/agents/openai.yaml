@@ -1,0 +1,5 @@
+interface:
+  display_name: "Codex Model Router"
+  short_description: "Route Codex tasks while preserving explicit choices"
+  brand_color: "#2C7068"
+  default_prompt: "Use $codex-model-router to explain the current routing policy and verify my setup."

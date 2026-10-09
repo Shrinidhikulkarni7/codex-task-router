@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose an improvement with a concrete workflow.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Workflow and problem
+      description: What are you trying to do, and what does the current behavior prevent?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include an example input, intended selection or result, and how manual choices should behave.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and tradeoffs
+      description: Configuration options or other approaches considered.

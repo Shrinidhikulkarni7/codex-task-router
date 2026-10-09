@@ -13,7 +13,7 @@ from test_session_proxy import CATALOG, MemoryRun, prompt
 
 class SelectiveRoutingTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.config = router.policy()
+        self.config = router.policy(include_local=False)
         self.state = TurnRouter(settings=lambda: self.config, record=MemoryRun)
         self.calls = 0
 

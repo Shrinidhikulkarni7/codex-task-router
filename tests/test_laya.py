@@ -32,7 +32,7 @@ def answer(profile="coding", p=0.94):
 class ConfigurationTests(unittest.TestCase):
     def test_defaults_and_older_policies_do_not_enable_inference(self):
         self.assertEqual(laya.config()["mode"], "rules")
-        settings = router.policy()
+        settings = router.policy(include_local=False)
         self.assertEqual(settings["classifier"]["mode"], "rules")
         del settings["classifier"]
         router.validate_policy(settings)
@@ -48,7 +48,7 @@ class ConfigurationTests(unittest.TestCase):
                  {"min_probability": True}, {"min_probability": float("nan")},
                  {"min_probability": float("inf")}, {"min_probability": 10**500}]
         for value in cases:
-            settings = router.policy()
+            settings = router.policy(include_local=False)
             settings["classifier"] = value
             with self.subTest(value=value), self.assertRaises(router.RouterError):
                 router.validate_policy(settings)
@@ -246,7 +246,7 @@ class HttpTests(unittest.IsolatedAsyncioTestCase):
 
 class RoutingTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.settings = router.policy()
+        self.settings = router.policy(include_local=False)
         self.settings["classifier"] = {"mode": "shadow"}
         self.calls = []
         self.response = answer()

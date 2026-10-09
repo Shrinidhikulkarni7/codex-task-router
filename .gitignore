@@ -9,6 +9,8 @@ htmlcov/
 node_modules/
 .router-state/
 /evals/local-results/
+skills/codex-model-router/policy.local.json
+/dist/
 
 # Keep editable media and the selected final demo artifacts; ignore working output.
 /videos/router-film-delivery.zip

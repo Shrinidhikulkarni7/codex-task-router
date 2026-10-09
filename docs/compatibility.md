@@ -1,93 +1,88 @@
 # Compatibility and verification
 
-This project integrates with a local Codex app-server, whose experimental protocol can change. Repository hardening and passing tests do not establish upstream production support. OpenAI's current documentation labels the app-server/WebSocket interface experimental and unsupported for production workloads. [Official App Server documentation](https://learn.chatgpt.com/docs/app-server#protocol).
+This is an experimental integration with a local Codex app-server. Passing
+repository checks does not establish upstream production support. The inspected
+OpenAI documentation describes the app-server/WebSocket interface as experimental
+and unsupported for production workloads. [Official protocol documentation](https://learn.chatgpt.com/docs/app-server#protocol).
 
 ## Runtime requirements
 
-| Area | Requirement or boundary |
+| Area | Requirement |
 | --- | --- |
-| Operating system | macOS or Linux with Unix domain sockets and an interactive terminal |
-| Python | 3.11+; standard library only |
-| Native CLI | Supports `--remote unix://PATH`, `--cd`, and `resume THREAD_ID` |
-| Existing daemon | Reachable via `codex app-server proxy`, optionally `--sock PATH` |
-| Protocol for `auto` | HTTP WebSocket upgrade; initialization; thread start/resume; `model/list`; `turn/start`; lifecycle events |
-| Account | Existing Codex authentication and access to every selected model/effort |
-| Legacy live updates | Experimental `turn/settings/update`, `step_model_switching`, a loaded active target, and compatible admission requirements |
-| Optional hook | `UserPromptSubmit` event with session/turn IDs, hook discovery, and native trust |
+| Platform | macOS or Linux, Unix domain sockets, interactive terminal |
+| Python | 3.11+; standard library only for the router |
+| CLI | Native `--remote unix://PATH`, `--cd`, and `resume THREAD_ID` support |
+| Daemon | Existing local server reachable through `codex app-server proxy` |
+| Account | Normal Codex authentication and access to selected models/efforts |
+| Automatic routing | Initialization, thread lifecycle, `model/list`, `turn/start` |
+| Optional live update | `turn/settings/update`, enabled `step_model_switching`, compatible active turn |
+| Optional hook | `UserPromptSubmit`, correct thread/turn IDs, native hook trust |
+| Optional classifier | Separate Laya service; extended HTTP contract tested with Laya 0.4.1 |
 
-The router does not offer a Windows transport, remote TCP/TLS configuration, arbitrary Codex argument passthrough, an inference backend, or automatic routing of independently opened app windows. Child agents and already captured inference requests are not retroactively updated. A standalone Codex process without an accessible shared daemon cannot use `auto` or the live helper; `run` can still choose initial CLI settings from a local cache.
+The inspected CLI was **0.160.1**. Earlier terminal checks also used 0.160.0.
+These observations do not identify every running daemon's version or promise
+compatibility with newer builds. Check the intended installed version before use.
 
-The public API describes selecting `model` and `effort` at `turn/start`, and steering a running turn separately. A skill loaded inside an already admitted turn does not control its original start parameters. [Official turn API](https://learn.chatgpt.com/docs/app-server#start-a-turn).
+Windows, remote TCP/TLS transports, arbitrary Codex flag passthrough, and
+automatic routing of independently opened app windows are outside scope.
+The router does not retroactively change captured inference or child sessions.
+A standalone CLI without an accessible daemon can use `run` for initial
+selection from a local catalog cache, but cannot use `auto`.
 
-## Evidence as of 2026-10-08
+## Verification coverage
 
-| Evidence | What it establishes | What it does not establish |
+| Evidence | Verified scope | Remaining limits |
 | --- | --- | --- |
-| User reported successful `auto` use in the Codex 0.160.0 setup | The user observed the per-prompt terminal workflow working in that environment | Universal compatibility, a measured inference trace, or a reproducible performance benchmark |
-| User previously verified `run` with Luna / medium and Sol 6.1 | Initial-session launch behavior worked there | Every later prompt was routed by `auto` |
-| User-run directory listing in 0.160.1, checked against local rollout and daemon diagnostics | The user turn requested Luna / medium, completed, and its usage counters matched `status`; a separate title-generation thread exposed an unintended Sol selection | A cost comparison, or live verification of the subsequent ephemeral-thread exclusion |
-| User-provided status from a new live run after the fix, 2026-10-07 | The listing was accepted on Luna / medium and completed; the separate ephemeral turn was skipped by routing and completed with usage recorded; the legacy hook skipped duplicate routing | The auxiliary model's identity, universal compatibility, or a controlled cost comparison |
-| Eight-turn user-run comparison across four models, checked against local records and rollout | Requested model/effort choices matched turn contexts; per-turn usage differences matched reported call counters; switch turns had more uncached input than their following repeats | Exact billing, a model-quality ranking, a cheaper subagent design, or a universal switching penalty; see [measurements and limitations](usage-and-cost.md#observed-model-switch-comparison-2026-10-07) |
-| Local `codex --version` subsequently returned 0.160.1 | The inspected CLI binary's version and advertised flags | The running daemon's version or a new live end-to-end test |
-| Local generated schemas inspected during development | Expected fields and experimental methods existed in that build | Future schema stability or every runtime feature's enablement |
-| Independent simulated native client and daemon fixtures | Protocol forwarding and routing invariants under covered scenarios | Actual model inference, account access, upstream load behavior, or native UI correctness in all versions |
-| Task-retention tests and an eight-prompt offline comparison | Related follow-ups retain model/effort; explicit boundaries and overrides select again; the comparison made zero model changes in task mode versus five in prompt mode | New live token savings or a cost comparison; see [local comparison](usage-and-cost.md#what-the-local-comparison-verifies) |
-| Selective-phase tests and the extended independent protocol fixture | Clear phase instructions can escalate, approved-plan implementation and qualifying summary batches can lower selection, brief checks retain settings, and explicit choices stay pinned | Live verification of the new phase rules, measured task quality, or cost savings |
-| Six-turn user-terminal check on 2026-10-08, verified against a saved baseline, routing records, and local rollout | Sol/Sol/Luna/Luna/Sol/Sol at medium effort; retention, explicit task boundary, override, completion, command output, hook deduplication, and token-counter agreement all matched expectations | A controlled cost comparison, independent backend attribution, or broad task-quality claims; see [live verification](usage-and-cost.md#live-task-retention-verification-2026-10-08) |
-| Real Unix-listener smoke test | Socket/launcher integration on hosts that permit it | Coverage on a host where the test is explicitly skipped |
+| Offline regression suite | Classification, retention/pins, independent protocol peers, approvals, validation, installer ownership, local configuration, archive isolation | No real model inference or account access |
+| CI matrix | macOS/Linux with Python 3.11/3.13; see [actual runs](https://github.com/Shrinidhikulkarni7/codex-task-router/actions/workflows/ci.yml) | A passing revision does not validate another revision or future upstream changes |
+| 70 authored rule cases | Development-rubric agreement; [method and provenance](routing-evaluation.md) | Not held-out accuracy or completed-task quality |
+| Native terminal checks, October 7–8, 2026 | Request/context agreement, completed tasks, usage snapshots, ephemeral exclusion, boundaries and explicit overrides | Not independent backend attribution or a controlled cost trial |
+| Six-turn retention check | Expected Sol/Sol/Luna/Luna/Sol/Sol sequence; [measured records](usage-and-cost.md#live-task-retention-verification-2026-10-08) | Does not exercise every selective phase transition |
+| Local Laya comparison, October 9, 2026 | 22 validated responses and two deliberate skips on 24 cases | No recommendation reached the provisional 0.8 threshold |
+| Native Laya shadow check | One validated response and one timeout both preserved rule-controlled selection and completion | No general accuracy, latency, or savings guarantee |
 
-The development agent's sandbox denied local socket binding/control access. Process-pipe fixtures therefore exercised the protocol without real inference; successful user-terminal use is reported separately. Do not collapse these into a claim that the agent independently verified every real model transition.
+Run `python3 scripts/check.py` for current offline results. It tests an isolated
+copy with shipped defaults so personal settings cannot contact a classifier.
+Unix-listener and loopback HTTP tests skip only when the host explicitly denies
+binding. Independent process-pipe and buffered HTTP coverage remain active.
 
-The local suite after selective routing reported **154 tests: 153 passed and one real Unix-listener smoke test was skipped** because the sandbox denied binding. Python compilation, skill validation, installer dry-run, CLI preview, whitespace, and local documentation-link checks passed. The command-line error path also has a subprocess regression test, preventing an invalid `auto` option from leaking a traceback.
-
-Task and selective tests cover first selection, older policy defaults, retained model and effort, work-phase transitions, repeated-failure reports, batch thresholds, task boundaries, explicit/native pins, rejection/missing-acknowledgment rollback, catalog failures, resume/fork, thread isolation, policy changes, quoted/negated requests, disabled routing, and legacy-hook suppression. An independent client/daemon fixture exercises fourteen prompts over WebSocket frames carried through process pipes, including phase changes, retention, deliberate switches, boundaries, and unchanged approvals.
-
-Usage tests cover snapshot replacement, notification ordering, thread/turn association, disabled routing, malformed data, privacy, bounded history, and local status reads. Temporary-thread tests cover native setting preservation, request/response/notification metadata, lifecycle cleanup, and separate usage recording. The user supplied live status confirming the earlier ephemeral-thread exclusion and later ran the six-turn task-retention check documented above. The agent verified existing local logs and usage-counter differences; it did not launch the live tasks. The read-only control-socket probe was denied by the sandbox. Selective phase rules have not yet had a live user-terminal check, and no controlled cost comparison across the three modes has run. Remote CI results are available in [GitHub Actions](https://github.com/Shrinidhikulkarni7/codex-task-router/actions); the local suite alone does not establish those results.
-
-The title-generation defect was diagnosed from the user's local 0.160.1 logs: a native temporary structured task asked for a conversation title, but its text was classified as implementation work. The proxy now excludes threads identified as ephemeral through protocol metadata rather than matching title-prompt wording. Ordinary user requests to write titles remain eligible for normal routing. Usage records from before the fix are not rewritten.
-
-## Action/scope evaluation update: 2026-10-09
-
-The revised classifier matched 70/70 authored routing cases, compared with 36/70 for `23efc58`, with no regressions among the previously matching cases. The corpus was used for development, so this is not held-out accuracy. Existing protocol/retention tests remain applicable. See [the evaluation report and reproduction commands](routing-evaluation.md).
-
-The local suite reported **164 tests: 163 passed and one Unix-listener test was skipped** because the sandbox denied binding. The new tests cover routing-rubric validation and agreement, quoted clause boundaries, and the opt-in answer runner's grading, usage handling, failure behavior, private reports, and offline default.
-
-The optional answer-quality runner was checked against local `codex exec --help`, exercised through its offline listing, and tested with fake CLI results. A read-only live `doctor` probe was denied control-socket access. No new model inference, real answer-quality score, or cost result is claimed. CI runs the offline evaluation/runner tests only.
-
-## Optional Laya verification: 2026-10-09
-
-The optional Laya classifier is separate from live switching. It runs only in the `auto` selection path and does not require `step_model_switching`. Its extended HTTP contract was checked against upstream Laya 0.4.1 source. The initial adapter tests used simulated HTTP/model responses: dependencies were absent, package lookup yielded no installable distribution in that environment, and loopback access was denied with `PermissionError` (errno 1). See [setup and verification limits](../skills/codex-model-router/references/laya.md).
-
-The expanded local suite reported **192 tests: 190 passed and two socket tests skipped** because the sandbox denied binding (Unix proxy and loopback HTTP). Coverage includes shadow disagreement, active recommendations, pins/manual updates during classification, retention, catalog rejection, bounded HTTP, response validation, cooldown, private reports, and an offline evaluation default. The original routing corpus remained 70/70. Routine CI uses fixtures and does not install or run Laya.
-
-For implementation commit `b423876`, [all four GitHub Actions jobs](https://github.com/Shrinidhikulkarni7/codex-task-router/actions/runs/37950317626) completed successfully on macOS and Ubuntu with Python 3.11 and 3.13. That is remote CI evidence for the adapter and repository checks, not real Laya inference or a live Codex task-quality result.
-
-Later on 2026-10-09, the user installed Laya 0.4.1, started the local HTTP service outside the agent sandbox, and ran all 24 authored comparison cases. The saved report contains 22 adapter-validated responses and two deliberate skips. None reached the 0.8 probability threshold. The agent verified the report's source/corpus hashes and replayed the recorded distributions offline; shadow preserved every rules decision. Loopback access remained denied in the agent's environment. The [recorded evidence and threshold analysis](laya-evaluation.md) distinguish that successful user-run service test from the offline replay. No completed-task quality or savings improvement is established.
-
-A subsequent user-run native `auto` session exercised shadow mode on a README summary. The first classifier call timed out at 2,004.69 ms; the rules still selected Luna/medium and the task completed. A retry with a temporary ten-second deadline returned a validated `easy` candidate at probability 0.3955 in 964.01 ms. Shadow mode recorded `used: false`, the rules selected Luna/medium, and the matching session context and completion agreed. The local deadline was then restored to two seconds. This verifies these response/fallback paths, not the cause of the initial delay, a calibrated threshold, broad task quality, or billing. See [native check details](laya-evaluation.md#native-shadow-session-check).
-
-With the offline replayer added, the local suite completed **196 tests: 194 passed and the same two socket tests skipped**. Replay tests cover retained choices, unchanged shadow decisions, no network calls or policy edits, source/corpus drift, invalid probabilities, and original-result reproduction. Tests ran against the distributed rules policy; a personal shadow-mode setting is a local configuration change, not a change to the shipped default.
+The restricted development environment denied socket binding and live control
+access. Native checks were performed in a separate unrestricted terminal, then
+verified from saved routing and session records. This distinction matters:
+fixture coverage, inspected records, and newly executed live tests are different
+evidence. [Laya methods and results](laya-evaluation.md) document the same boundary.
 
 ## Live switching
 
-`turn/settings/update` was present in the inspected local experimental schema but is not described as a stable method on the fetched public App Server page. In the diagnosed 0.160.0 setup it required `step_model_switching`, a feature marked under development and disabled by default in that setup.
+The experimental `turn/settings/update` method requires the hosting build's
+`step_model_switching` feature. It publishes settings for later captures in an
+active turn. An asynchronous hook can finish after inference has already begun.
+`applied` acknowledges publication, not subsequent inference usage.
 
-An `applied` response confirms settings publication for subsequent captures in the active turn. The async hook can run after the first inference has begun. Captured requests and child sessions retain their previous settings.
+Codex can reject a destination that changes the turn's admitted Node REPL review
+requirement. This occurred in a Sol/Astra-to-Luna transition during development;
+it is not a permanent compatibility table. The server is authoritative. The
+router preserves the running turn and does not alter review settings or retry
+substitute models to evade rejection. `auto` selects before a later turn is
+admitted normally and does not require the live-switching feature.
 
-Codex rejected a destination that changed the active turn's admitted Node REPL review requirement. At diagnosis time, the local cache marked GPT-6 Astra and GPT-6/6.1 Sol as requiring that review, and GPT-6 Luna plus GPT-5.6 Terra/Sol/Luna as not requiring it. These values explain the observed Astra/Sol-to-Luna rejection; they are not a permanent model compatibility table or a guarantee that any other pair can switch.
+## Model and performance limits
 
-The server is authoritative. The router reports rejection and preserves the running turn; it does not alter review requirements, bypass permissions, retry a substitute model, or restart the task. Selecting before a later new turn with `auto` lets Codex evaluate that destination through normal admission.
+Configured model IDs are preferences checked against the account catalog, not
+verified model rankings. `preview` and `run` use a cache that can be stale.
+The text rules can miss nuance. Laya active mode remains experimental and is
+not enabled by default. No evaluation establishes lower cost, faster completion,
+higher task quality, or fewer retries.
 
-## Model and performance claims
+`accepted` and displayed model labels describe selections. Optional usage
+notifications contain thread snapshots without model attribution; the router
+is not a billing meter and does not aggregate child-agent work. See
+[usage and cache interpretation](usage-and-cost.md).
 
-The shipped model IDs are policy preferences. Model availability, defaults, effort levels, and access can change; `auto`, `apply`, and the hook use the connected catalog. `preview` and `run` use a cache that may be stale. The local rules can misclassify nuanced or mixed tasks.
+## Validate a Codex upgrade
 
-No benchmark in this repository establishes lower cost, faster completion, higher quality, or fewer retries. Routing adds local processing and catalog round trips. Evaluate correctness and normal Codex usage on representative tasks before adopting or changing a policy. `accepted`, `applied`, and displayed model labels are selection evidence, not independently measured inference usage.
-
-Optional `thread/tokenUsage/updated` recording observes the existing stream without extra requests. Fields were checked against the generated local 0.160.1 schema. The recorder preserves the server's latest snapshot rather than calculating per-turn or per-model usage. It does not calculate billing or aggregate worker threads. See [cache tradeoffs and comparison instructions](usage-and-cost.md).
-
-## Check a Codex upgrade
-
-Before relying on a new version, inspect the installed CLI help and daemon version, run the repository tests, check `doctor` under the intended account/home, and complete a small real `auto` session. Exercise resume, manual selection, a route directive, active steering, and normal exit when those matter to your workflow. Keep the tested version and any skipped checks in release notes.
-
-Tests should remain usable without login, network access, or model calls. Do not turn routine CI into a paid or authenticated live integration test.
+Check CLI help and the intended daemon version, run offline checks, and run
+`doctor` under the intended account/home. Complete a small `auto` session with
+initial routing, a boundary, a pinned override, resume, native model selection,
+active steering, and normal exit when those features matter. Record the exact
+version, outcomes, and skipped checks. Keep live inference out of routine CI.

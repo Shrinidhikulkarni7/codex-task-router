@@ -156,21 +156,21 @@ The last example preserves the known model and requests a new effort. Alias choi
 
 ## Customize the policy
 
-Edit [policy.json](../skills/codex-model-router/policy.json) in the checkout. All eight profile IDs must remain present: `precheck`, `easy`, `coding`, `review`, `planning`, `debugging`, `deep-debug`, and `terra`. Each profile contains a nonempty ordered `models` array and an `effort` string. Keep valid JSON; comments and trailing commas are not accepted.
+Keep shipped defaults in [policy.json](../skills/codex-model-router/policy.json). Put personal settings in `skills/codex-model-router/policy.local.json`, which is ignored by Git and excluded from distribution. Objects merge recursively; scalar values and arrays replace defaults. The merged result is validated before use.
 
-Required top-level fields are `enabled` and `profiles`. The optional `routing_mode` is `"selective"` (default, including policies that omit it), `"task"`, or `"prompt"`. Explicit existing mode values keep their behavior. Each profile permits exactly `models` and `effort`. Model IDs must be nonempty, unique within the profile, and contain no whitespace. Recognized effort names are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`; a recognized name must also be advertised by the selected model. Unknown keys or profile names are errors.
-
-To select Terra for new coding tasks, replace the `coding` entry inside `profiles` with:
+For example, to prefer Terra for coding while inheriting every other setting:
 
 ```json
-"coding": {"models": ["gpt-5.6-terra"], "effort": "medium"}
+{"profiles": {"coding": {"models": ["gpt-5.6-terra"], "effort": "medium"}}}
 ```
 
-If you deliberately want a fallback across families, explicitly list it, for example `"models": ["gpt-5.6-terra", "gpt-6.1-sol"]`. The router uses exactly the candidates you configure.
+Merge this into an existing local file if needed. Inspect effective settings without a connection:
 
-Selection takes the first available non-hidden model, then validates the effort on that model. An unsupported effort is an error; the router does not search later candidates for one that accepts it. Availability is determined at runtime and differs by client or account.
+```sh
+python3 "$ROUTER_SCRIPT" config
+```
 
-`auto` reloads policy for each eligible new prompt. Profile edits apply when a selection is next requested: a boundary/override, or a recognized selective phase change. Repeated work in the same phase retains its accepted settings. Switching modes takes effect on the next eligible prompt: `task` retains the latest choice, `prompt` reclassifies, and `selective` uses phase rules while honoring known pins. Other commands read policy when invoked. No edit changes an active turn. Set top-level `"enabled": false` to stop automatic selections; the proxy still forwards traffic and records skipped eligible prompts.
+[The configuration reference](../skills/codex-model-router/references/configuration.md) lists all profiles, modes, defaults, merge rules, and migration instructions. A missing model or unsupported effort remains an error. Changes apply when a new selection is eligible; they do not release an existing pin or modify an active turn. Restart `auto` after updating Python code.
 
 The default classifier uses ordered text rules, not a learned difficulty score. It considers each recognized affirmative action: bounded definitions, literal edits, summaries, and existing checks can remain small even when they mention difficult concepts. An actual investigation of concurrency/corruption selects `deep-debug`; other investigations select `debugging`. Consequential implementation/review and broad system construction can select `planning`, meaning higher reasoning without changing the requested work. Routine implementation selects `coding`. A one-line helper can select `easy`, but a one-line authorization change remains consequential.
 
@@ -249,7 +249,7 @@ The parser exposes common flags for all commands, but they only affect the scope
 
 | Argument | Applies to | Meaning |
 | --- | --- | --- |
-| `command` | Required | `auto`, `preview`, `run`, `apply`, `doctor`, `status`, or `hook` |
+| `command` | Required | `auto`, `preview`, `run`, `apply`, `doctor`, `status`, `config`, or `hook` |
 | `task` | `auto`, `preview`, `run`, `apply` | One quoted text argument; required for `run`, optional elsewhere |
 | `--phase PROFILE` | `preview`, `run`, `apply` | One of the eight profiles; a leading route directive takes priority |
 | `--failed-attempts N` | `preview`, `run`, `apply` | Nonnegative explicit failure count; relevant escalation begins at 2 |
@@ -278,12 +278,12 @@ The parser exposes common flags for all commands, but they only affect the scope
 
 ## Update and remove
 
-Close active routed sessions before updating Python source. Preserve local policy edits, inspect upstream changes, and pull from your checkout:
+Close active routed sessions before updating Python source. Keep personal preferences in the ignored local override, inspect upstream changes, and pull from your checkout:
 
 ```sh
 git status --short
 git pull --ff-only
-python3 -m unittest discover -s tests -v
+python3 scripts/check.py
 ```
 
 The symlink points directly at this source; there is no copied skill to reinstall after a normal update. Start a new `auto` session to load new code. If you use the legacy hook, rerun `python3 install.py --legacy-hook` when its command definition or Python path changes, then check `/hooks` for any required trust review. Upgrading Codex separately can change its protocol or model catalog; recheck `doctor` and a small real session.

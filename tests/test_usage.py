@@ -35,7 +35,7 @@ class UsageReportingTests(unittest.IsolatedAsyncioTestCase):
         self.client, downstream = wire_pair()
         upstream, self.server = wire_pair()
         self.records = []
-        self.config = router.policy()
+        self.config = router.policy(include_local=False)
 
         def record():
             run = MemoryRun()

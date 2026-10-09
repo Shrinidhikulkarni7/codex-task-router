@@ -19,7 +19,7 @@ from test_session_proxy import CATALOG, MemoryRun, prompt
 
 class TaskRoutingTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.config = router.policy()
+        self.config = router.policy(include_local=False)
         self.config["routing_mode"] = "task"
         self.state = TurnRouter(settings=lambda: self.config, record=MemoryRun)
         self.calls = 0
@@ -255,10 +255,10 @@ class TaskPolicyTests(unittest.TestCase):
 
     def test_modes_validate_and_invalid_values_fail(self):
         for mode in ("selective", "task", "prompt"):
-            router.validate_policy(dict(router.policy(), routing_mode=mode))
+            router.validate_policy(dict(router.policy(include_local=False), routing_mode=mode))
         for mode in (None, True, 1, [], {}, "typo", "TASK"):
             with self.subTest(mode=mode), self.assertRaisesRegex(router.RouterError, "routing_mode"):
-                router.validate_policy(dict(router.policy(), routing_mode=mode))
+                router.validate_policy(dict(router.policy(include_local=False), routing_mode=mode))
 
     def test_preview_classifier_understands_explicit_boundaries(self):
         for text in ("New task: List files", "[route:new] List files"):

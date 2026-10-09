@@ -7,15 +7,11 @@ Keep changes focused on a reproducible routing or integration behavior. The proj
 From a checkout:
 
 ```sh
-python3 -m unittest discover -s tests -v
-python3 install.py --help
-python3 skills/codex-model-router/scripts/router.py --help
-python3 evals/evaluate.py
-python3 evals/task_quality.py
-python3 evals/laya_compare.py
+python3 scripts/check.py
+python3 scripts/build_skill.py
 ```
 
-The test suite uses temporary Codex homes, model catalogs, and independent protocol peers. It must run without a Codex login, network access, credentials, global installation, or inference calls. The Unix-listener test skips only when the host explicitly denies socket binding; retain the process-pipe coverage when that happens.
+The check runner copies only public test inputs into a temporary checkout, excluding personal policy and runtime state. The suite uses temporary Codex homes, model catalogs, and independent protocol peers. Focused tests can also be run with `python3 -m unittest discover -s tests -p test_local_policy.py -v`. It must run without a Codex login, network access, credentials, global installation, or inference calls. The Unix-listener test skips only when the host explicitly denies socket binding; retain the process-pipe coverage when that happens.
 
 [GitHub Actions](.github/workflows/ci.yml) is configured to run the offline checks on macOS and Linux with Python 3.11 and 3.13. A checked-in workflow is not evidence that a remote run has passed; report actual results and skips in a change description.
 
@@ -51,4 +47,16 @@ Describe the concrete trigger and changed behavior. Include relevant test result
 
 Exclude `.router-state/`, generated caches, private prompts, credentials, and raw diagnostic dumps from commits. Keep final demo artifacts and editable media intentional; the video project documents its rebuild inputs and provenance.
 
-No repository license has been selected. Do not add a license or represent a contributor's ownership without the maintainer's decision.
+Contributions are made under the repository's [MIT license](LICENSE). Preserve third-party attribution and terms; do not include model weights or external assets without appropriate rights and notices.
+
+## Repository and skill layout
+
+Keep runtime instructions and their references inside `skills/codex-model-router/`.
+Keep tests, evaluation runners, and historical evidence outside the installed
+skill. References required at runtime must survive a standalone copy. Update
+`scripts/build_skill.py` explicitly when adding a distributable file.
+
+A pull request should explain the observable problem, resulting behavior, and
+validation. Use the issue templates for reproducible bugs or focused proposals.
+See [distribution](docs/distribution.md) for release checks and [the changelog](CHANGELOG.md)
+for user-facing changes. Never publish personal policy or local diagnostics.

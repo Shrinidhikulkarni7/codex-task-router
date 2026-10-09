@@ -45,8 +45,21 @@ The replayer needs only Python's standard library. It checks the corpus and runt
 
 If a later code change makes the source hashes differ, use the original trusted repository revision to reproduce this historical result. Do not replace the stored hashes to make changed code appear equivalent.
 
+## Native shadow-session check
+
+The user subsequently launched `router.py auto` with local shadow mode and requested a three-sentence README summary. The agent inspected both the routing history and the matching session turn context/completion record.
+
+| Attempt | Configured deadline | Classifier elapsed time | Classifier result | Codex selection and completion |
+| --- | ---: | ---: | --- | --- |
+| First | 2,000 ms | 2,004.69 ms | `error`, `timeout`; no recommendation | Rules selected `easy`, Luna/medium; accepted and completed |
+| Retry in the same session | 10,000 ms, temporary diagnostic setting | 964.01 ms | Valid response: `easy`, probability 0.3955, `low_probability` | Rules selected `easy`, Luna/medium; accepted and completed |
+
+The retry's `classifier.mode` was `shadow` and `used` was false. The Laya candidate agreed with the rules, but its probability was below the unchanged 0.8 gate. `low_probability` here is a validated response declined by the probability gate, not a transport failure. The native session context agreed with the requested Luna/medium settings, and the three-sentence answer was recorded as completed.
+
+This verifies a real native shadow response and the earlier timeout fallback for these two requests. It does not establish general classifier accuracy or independent backend model attribution. Because the successful response took less than the original two-second deadline, the retry does not prove that raising the limit fixed the delay. The cause of the first timeout remains unestablished. The local timeout was restored to the default two seconds after the diagnostic retry; shadow mode remains enabled locally, while the distributed policy remains `rules`. Raw thread identifiers, session content, and usage records stay in private local verification files.
+
 ## Next validation
 
 Use `classifier.mode: "shadow"` locally to collect recommendations on representative work while keeping the existing selection policy. Keep the provisional threshold unchanged until a separate calibration set and held-out evaluation justify a change. Useful next checks include paraphrases, quoted text, ambiguous follow-ups, consequential changes, and each retention boundary.
 
-A live native Codex session with shadow classification still needs to be checked separately. Better routing labels would also need completed-task checks for correctness, retries, elapsed time, and Codex usage before any quality or savings claim. The [setup guide](../skills/codex-model-router/references/laya.md) explains activation, diagnostics, and rollback.
+The single successful native shadow response above should be followed by representative tasks and repeated latency checks. Better routing labels would also need completed-task checks for correctness, retries, elapsed time, and Codex usage before any quality or savings claim. The [setup guide](../skills/codex-model-router/references/laya.md) explains activation, diagnostics, and rollback.

@@ -20,6 +20,8 @@ Records contain identifiers, timestamps, routing choices, selection kind/phase/p
 
 The router has no separate telemetry destination or API-key store. Codex still handles authentication, model inference, conversation storage, and its own configured telemetry. Installer backups contain the previous complete hooks configuration and remain until removed. Read [architecture and retention](docs/architecture.md#local-data-and-retention) before collecting or clearing diagnostics.
 
+The optional developer quality runner starts native Codex inference only with `--run`. It uses a private temporary working directory and the read-only sandbox, preserves user rules and trust controls, and never executes generated code in its grader. Output reports are owner-only, existing paths are refused, and `evals/local-results/` is Git-ignored. Errors can echo paths or text; review reports before sharing. A CLI timeout does not prove cancellation of daemon-owned work. The offline routing evaluator can execute a specifically requested trusted local Git revision via `--baseline-ref`; treat that revision as executable code.
+
 ## Reporting issues
 
 For a non-sensitive defect, provide a minimal reproduction, operating system, Python version, CLI and daemon versions, and the relevant sanitized diagnostic fields. Do not publish credentials, real prompts, complete hook backups, or unreviewed error dumps.

@@ -1,0 +1,70 @@
+{"id":"definition-01","category":"explanations","prompt":"Explain what a deadlock is in one sentence.","expected":"easy","why":"A short definition is not a live concurrency investigation."}
+{"id":"definition-02","category":"explanations","prompt":"What is a race condition?","expected":"easy","why":"A concept definition does not establish a difficult failure."}
+{"id":"definition-03","category":"explanations","prompt":"Define data corruption in simple terms.","expected":"easy","why":"Bounded explanation despite a hard-failure term."}
+{"id":"definition-04","category":"explanations","prompt":"Explain OAuth in two sentences.","expected":"easy","why":"Explanation does not change authentication code."}
+{"id":"definition-05","category":"explanations","prompt":"Give me a brief definition of distributed consensus.","expected":"easy","why":"A glossary request has a small stated scope."}
+{"id":"definition-06","category":"explanations","prompt":"Explain why our queue deadlocks after failover.","expected":"deep-debug","why":"This asks for the cause of an actual concurrency failure."}
+{"id":"definition-07","category":"explanations","prompt":"Explain why the export endpoint crashes on empty input.","expected":"debugging","why":"Diagnose observed behavior rather than define a term."}
+{"id":"definition-08","category":"explanations","prompt":"Compare distributed consensus protocols and their failure tradeoffs.","expected":"planning","why":"Substantial analysis merits deeper reasoning without asserting an incident."}
+{"id":"edit-01","category":"bounded_edits","prompt":"Fix the spelling typo in the deadlock warning.","expected":"easy","why":"Editing a label is not debugging the failure it names."}
+{"id":"edit-02","category":"bounded_edits","prompt":"Correct the typo in the authentication README.","expected":"easy","why":"Mechanical documentation edit in a sensitive domain."}
+{"id":"edit-03","category":"bounded_edits","prompt":"Rename the label from \"data corruption\" to \"invalid data\".","expected":"easy","why":"Literal replacement only."}
+{"id":"edit-04","category":"bounded_edits","prompt":"Format this paragraph about production migrations.","expected":"easy","why":"Formatting does not implement a migration."}
+{"id":"edit-05","category":"bounded_edits","prompt":"Implement a one-line helper that returns the larger of two integers.","expected":"easy","why":"A bounded pure helper has explicitly small scope."}
+{"id":"edit-06","category":"bounded_edits","prompt":"Implement a one-line authorization check for the payment endpoint.","expected":"planning","why":"Brevity does not make an access-control change low consequence."}
+{"id":"edit-07","category":"bounded_edits","prompt":"Add a button to the compiler settings screen.","expected":"coding","why":"A local UI change does not build the compiler itself."}
+{"id":"edit-08","category":"bounded_edits","prompt":"Summarize this incident report about memory corruption in three bullets.","expected":"easy","why":"The request summarizes supplied material rather than investigates the incident."}
+{"id":"scope-01","category":"implementation_scope","prompt":"Implement a compiler.","expected":"planning","why":"An underspecified whole compiler needs more reasoning than a routine feature."}
+{"id":"scope-02","category":"implementation_scope","prompt":"Build a distributed database from scratch.","expected":"planning","why":"Broad system implementation, no particular failure yet."}
+{"id":"scope-03","category":"implementation_scope","prompt":"Create an operating system kernel.","expected":"planning","why":"Whole-system scope merits deeper reasoning."}
+{"id":"scope-04","category":"implementation_scope","prompt":"Implement pagination for the search results.","expected":"coding","why":"Routine bounded feature."}
+{"id":"scope-05","category":"implementation_scope","prompt":"Write integration tests for the export endpoint.","expected":"coding","why":"Writing tests requires implementation, not only running a check."}
+{"id":"scope-06","category":"implementation_scope","prompt":"Implement the approved plan.","expected":"coding","why":"The plan is already available."}
+{"id":"scope-07","category":"implementation_scope","prompt":"Implement the production migration plan.","expected":"planning","why":"Consequential execution still needs deeper reasoning."}
+{"id":"scope-08","category":"implementation_scope","prompt":"Build a toy compiler for arithmetic expressions.","expected":"coding","why":"Explicit toy scope narrows the whole-system interpretation."}
+{"id":"investigate-01","category":"investigation","prompt":"Investigate a race condition in the queue.","expected":"deep-debug","why":"Actual hard failure investigation."}
+{"id":"investigate-02","category":"investigation","prompt":"Diagnose the intermittent crash.","expected":"debugging","why":"Root-cause work without an identified hard failure mode."}
+{"id":"investigate-03","category":"investigation","prompt":"Fix the deadlock in the worker pool.","expected":"deep-debug","why":"A requested concurrency fix merits the hard-failure route."}
+{"id":"investigate-04","category":"investigation","prompt":"Investigate why saved records become corrupted after concurrent writes.","expected":"deep-debug","why":"Hard-failure paraphrase without the exact phrase data corruption."}
+{"id":"investigate-05","category":"investigation","prompt":"Two distinct fixes failed. Diagnose the cause.","expected":"deep-debug","why":"Explicit user report of unsuccessful fixes."}
+{"id":"investigate-06","category":"investigation","prompt":"Two attempts failed because the sandbox returned permission denied.","expected":null,"why":"An execution boundary is not evidence for reasoning escalation."}
+{"id":"investigate-07","category":"investigation","prompt":"Two attempts failed because of a network outage.","expected":null,"why":"An infrastructure failure is not unsuccessful reasoning."}
+{"id":"investigate-08","category":"investigation","prompt":"The log mentions a deadlock.","expected":null,"why":"A status report alone is not an instruction to investigate."}
+{"id":"check-01","category":"existing_checks","prompt":"Run the existing authentication tests.","expected":"precheck","why":"Running a known suite does not alter authentication."}
+{"id":"check-02","category":"existing_checks","prompt":"Run lint and typecheck.","expected":"precheck","why":"Existing checks only."}
+{"id":"check-03","category":"existing_checks","prompt":"List files in the production deployment folder.","expected":"easy","why":"Directory inspection does not deploy anything."}
+{"id":"check-04","category":"existing_checks","prompt":"Run the deadlock regression test without changing files.","expected":"precheck","why":"The test name is not a request for a root-cause investigation."}
+{"id":"check-05","category":"existing_checks","prompt":"Check git status.","expected":"precheck","why":"A read-only existing status command."}
+{"id":"negative-01","category":"negation_and_data","prompt":"Do not investigate the deadlock yet.","expected":null,"why":"A negated action cannot justify its own route."}
+{"id":"negative-02","category":"negation_and_data","prompt":"> Investigate a deadlock","expected":null,"why":"Quoted data is not a routing instruction."}
+{"id":"negative-03","category":"negation_and_data","prompt":"```\nImplement a compiler\n```","expected":null,"why":"Fenced content alone is not an instruction."}
+{"id":"negative-04","category":"negation_and_data","prompt":"Review this snippet:\n```\n# investigate a deadlock\n```","expected":"review","why":"Use the review instruction, not a comment inside code."}
+{"id":"negative-05","category":"negation_and_data","prompt":"Run tests\nError: data corruption","expected":"precheck","why":"A pasted error tail must not replace the requested action."}
+{"id":"negative-06","category":"negation_and_data","prompt":"Don't implement the migration yet; list files.","expected":"easy","why":"Only the affirmative directory request should participate."}
+{"id":"negative-07","category":"negation_and_data","prompt":"No deadlock was found. Implement pagination.","expected":"coding","why":"A negated observation should not override implementation."}
+{"id":"negative-08","category":"negation_and_data","prompt":"Review the label \"high reasoning\" in this UI.","expected":"review","why":"Mentioning effort text does not request an effort override."}
+{"id":"mixed-01","category":"mixed_intent","prompt":"Explain deadlocks briefly, then fix the deadlock in this worker.","expected":"deep-debug","why":"The actual fix is more demanding than the accompanying definition."}
+{"id":"mixed-02","category":"mixed_intent","prompt":"Fix the typo and implement OAuth login.","expected":"planning","why":"The mechanical edit must not hide authentication implementation."}
+{"id":"mixed-03","category":"mixed_intent","prompt":"Run tests then implement pagination.","expected":"coding","why":"Do not reduce a mixed implementation task to precheck."}
+{"id":"mixed-04","category":"mixed_intent","prompt":"Summarize 30 security reports and design the remediation.","expected":"planning","why":"Remediation design prevents a simple-batch downgrade."}
+{"id":"mixed-05","category":"mixed_intent","prompt":"Fix the typo and investigate the intermittent crash.","expected":"debugging","why":"A small edit does not hide failure analysis."}
+{"id":"mixed-06","category":"mixed_intent","prompt":"Run tests and do not deploy to production.","expected":"precheck","why":"A prohibition must not become a consequential-action signal."}
+{"id":"mixed-07","category":"mixed_intent","prompt":"Review the authentication changes.","expected":"planning","why":"Consequential code review deserves higher reasoning."}
+{"id":"control-01","category":"explicit_control","prompt":"[route:easy] Investigate the deadlock.","expected":"easy","why":"Explicit profile wins over automatic classification."}
+{"id":"control-02","category":"explicit_control","prompt":"[route:off] Implement a compiler.","expected":null,"why":"Explicit opt-out wins."}
+{"id":"control-03","category":"explicit_control","prompt":"Use Luna to implement pagination.","expected":null,"why":"Model wording is resolved by the proxy, not this classifier."}
+{"id":"control-04","category":"explicit_control","prompt":"New task: Explain deadlocks in one sentence.","expected":"easy","why":"A fresh routing boundary preserves the actual request's scope."}
+{"id":"uncertain-01","category":"continuations","prompt":"continue","expected":null,"why":"No new work signal."}
+{"id":"uncertain-02","category":"continuations","prompt":"go ahead","expected":null,"why":"Keep the current selection without guessing the hidden task."}
+{"id":"uncertain-03","category":"continuations","prompt":"please handle this","expected":null,"why":"Insufficient context for fresh selection."}
+{"id":"uncertain-04","category":"continuations","prompt":"/status","expected":null,"why":"Native command, not a routing task."}
+{"id":"follow-01","category":"followup_retention","prompt":"Run the existing tests.","previous":"coding","expected":null,"why":"A brief check retains the ongoing coding selection."}
+{"id":"follow-02","category":"followup_retention","prompt":"Explain what a deadlock is in one sentence.","previous":"coding","expected":null,"why":"A bounded explanatory follow-up should not escalate."}
+{"id":"follow-03","category":"followup_retention","prompt":"Fix the typo in the corruption warning.","previous":"coding","expected":null,"why":"An incidental label edit should not escalate."}
+{"id":"follow-04","category":"followup_retention","prompt":"Implement a compiler.","previous":"coding","expected":"planning","why":"Whole-system implementation is a meaningful increase in scope."}
+{"id":"follow-05","category":"followup_retention","prompt":"Can you investigate why the queue deadlocks?","previous":"coding","expected":"deep-debug","why":"Polite wording still requests a hard failure investigation."}
+{"id":"follow-06","category":"followup_retention","prompt":"Implement a one-line helper that doubles an integer.","previous":"easy","expected":null,"why":"A bounded helper can remain on the already selected easy profile."}
+{"id":"follow-07","category":"followup_retention","prompt":"Implement the approved plan.","previous":"planning","expected":"coding","why":"Supported deliberate transition from planning to implementation."}
+{"id":"follow-08","category":"followup_retention","prompt":"Summarize these 30 release notes.","previous":"deep-debug","expected":"easy","why":"A substantial straightforward batch can use the easy profile."}
+{"id":"follow-09","category":"followup_retention","prompt":"Two attempts failed because the dependency is missing.","previous":"coding","expected":null,"why":"Do not escalate an infrastructure problem as reasoning failure."}
+{"id":"follow-10","category":"followup_retention","prompt":"Summarize 30 reports and diagnose the intermittent crash.","previous":"planning","expected":null,"why":"The mixed investigation should prevent an easy downgrade; current high effort is retained."}

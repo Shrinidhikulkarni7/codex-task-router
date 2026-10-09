@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "definition",
+      "prompt": "Explain what a deadlock is in one sentence by selecting the correct definition.\nA: Any program that runs slowly.\nB: A set of tasks waits on resources held by one another, preventing progress.\nC: Every exception raised by a worker.\nReturn JSON with answer equal to A, B, or C. Use only this material; do not use tools.",
+      "expected": {"answer": "B"}
+    },
+    {
+      "id": "extraction",
+      "prompt": "Extract the unique service names from this security report, sorted alphabetically.\nReport: auth timed out; search recovered; auth restarted; billing remained healthy.\nReturn JSON with answer containing the service names separated by commas, without spaces. Use only this material; do not use tools.",
+      "expected": {"answer": "auth,billing,search"}
+    },
+    {
+      "id": "bounded-helper",
+      "prompt": "Implement a one-line helper that returns the larger of two integers by selecting its return expression. Arguments are a and b, and either may be negative.\nA: abs(a) if abs(a) > abs(b) else abs(b)\nB: a if a >= b else b\nC: a + b\nReturn JSON with answer equal to A, B, or C. Use only this material; do not use tools.",
+      "expected": {"answer": "B"}
+    },
+    {
+      "id": "implementation",
+      "prompt": "Implement stable deduplication of hashable strings, preserving first appearance, by choosing the correct Python expression.\nA: sorted(set(items))\nB: list(dict.fromkeys(items))\nC: list(set(items))\nFor items ['b', 'a', 'b', 'c', 'a'], return JSON with answer formatted as the option letter followed by a colon and the output values separated by commas, with no spaces. Use only this material; do not use tools.",
+      "expected": {"answer": "B:b,a,c"}
+    },
+    {
+      "id": "debugging",
+      "prompt": "Diagnose why this function crashes on an empty list and select the patch that returns None for empty input while preserving every nonempty list's last item, including 0 and False.\n```python\ndef last(items):\n    return items[-1]\n```\nA: return items[-1] if items else None\nB: return items[-1] or None\nC: return items[0] if items else None\nReturn JSON with answer equal to A, B, or C. Use only this material; do not use tools.",
+      "expected": {"answer": "A"}
+    },
+    {
+      "id": "concurrency",
+      "prompt": "Investigate a deadlock in this worker pair. The locks are non-reentrant.\nWorker 1 holds A and waits for B. Worker 2 holds B and waits for A.\nSelect the fix that prevents this lock-order cycle for both workers.\nA: Increase both timeouts.\nB: Make every worker acquire A before B.\nC: Make only Worker 1 acquire B before A while Worker 2 acquires A before B.\nReturn JSON with answer equal to A, B, or C. Use only this material; do not use tools.",
+      "expected": {"answer": "B"}
+    },
+    {
+      "id": "planning",
+      "prompt": "Plan the order of a schema migration from old_value to new_value.\nA: Drop old_value.\nB: Add nullable new_value.\nC: Deploy a version that writes both columns and reads old_value.\nD: Backfill new_value and verify it.\nE: After all old clients retire, deploy reads and writes using new_value only.\nConstraints: B must precede C; C must precede D; D must precede E; E must precede A.\nReturn JSON with answer containing the step letters in order, separated by commas without spaces. Use only this material; do not use tools.",
+      "expected": {"answer": "B,C,D,E,A"}
+    }
+  ]
+}

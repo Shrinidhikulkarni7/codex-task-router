@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "kind": "authored-routing-rubric",
+  "cases_sha256": "3554e7a83aa6d20535d0d3551066e97d561b75671e1b25ca6a4a895eba0e846a",
+  "current": {
+    "cases": 70,
+    "matched": 70,
+    "by_category": {
+      "explanations": {
+        "cases": 8,
+        "matched": 8
+      },
+      "bounded_edits": {
+        "cases": 8,
+        "matched": 8
+      },
+      "implementation_scope": {
+        "cases": 8,
+        "matched": 8
+      },
+      "investigation": {
+        "cases": 8,
+        "matched": 8
+      },
+      "existing_checks": {
+        "cases": 5,
+        "matched": 5
+      },
+      "negation_and_data": {
+        "cases": 8,
+        "matched": 8
+      },
+      "mixed_intent": {
+        "cases": 7,
+        "matched": 7
+      },
+      "explicit_control": {
+        "cases": 4,
+        "matched": 4
+      },
+      "continuations": {
+        "cases": 4,
+        "matched": 4
+      },
+      "followup_retention": {
+        "cases": 10,
+        "matched": 10
+      }
+    },
+    "revision": "working-tree",
+    "source_sha256": "f82c46e154fef2fa13315c77a00ddb498dfe21eb83e9466906aa9fcf86c7f2d0"
+  },
+  "limits": "Synthetic cases used for development; agreement is not held-out accuracy, task success, cost savings, or inference evidence.",
+  "baseline": {
+    "cases": 70,
+    "matched": 36,
+    "by_category": {
+      "explanations": {
+        "cases": 8,
+        "matched": 0
+      },
+      "bounded_edits": {
+        "cases": 8,
+        "matched": 2
+      },
+      "implementation_scope": {
+        "cases": 8,
+        "matched": 5
+      },
+      "investigation": {
+        "cases": 8,
+        "matched": 5
+      },
+      "existing_checks": {
+        "cases": 5,
+        "matched": 2
+      },
+      "negation_and_data": {
+        "cases": 8,
+        "matched": 3
+      },
+      "mixed_intent": {
+        "cases": 7,
+        "matched": 6
+      },
+      "explicit_control": {
+        "cases": 4,
+        "matched": 3
+      },
+      "continuations": {
+        "cases": 4,
+        "matched": 4
+      },
+      "followup_retention": {
+        "cases": 10,
+        "matched": 6
+      }
+    },
+    "revision": "23efc589528de016338ca2348b3d769ed5a481c4",
+    "source_sha256": "c3bf22f564acd05aefc0e7015e21801a88f2a3361537f1d04216822c6f7b0a72"
+  },
+  "improved": [
+    "definition-01",
+    "definition-02",
+    "definition-03",
+    "definition-04",
+    "definition-05",
+    "definition-06",
+    "definition-07",
+    "definition-08",
+    "edit-01",
+    "edit-02",
+    "edit-03",
+    "edit-04",
+    "edit-05",
+    "edit-08",
+    "scope-01",
+    "scope-02",
+    "scope-03",
+    "investigate-04",
+    "investigate-05",
+    "investigate-08",
+    "check-01",
+    "check-03",
+    "check-04",
+    "negative-01",
+    "negative-02",
+    "negative-06",
+    "negative-07",
+    "negative-08",
+    "mixed-06",
+    "control-04",
+    "follow-04",
+    "follow-05",
+    "follow-06",
+    "follow-09"
+  ],
+  "regressed": [],
+  "recorded_on": "2026-10-09"
+}

@@ -46,6 +46,14 @@ Usage tests cover snapshot replacement, notification ordering, thread/turn assoc
 
 The title-generation defect was diagnosed from the user's local 0.160.1 logs: a native temporary structured task asked for a conversation title, but its text was classified as implementation work. The proxy now excludes threads identified as ephemeral through protocol metadata rather than matching title-prompt wording. Ordinary user requests to write titles remain eligible for normal routing. Usage records from before the fix are not rewritten.
 
+## Action/scope evaluation update: 2026-10-09
+
+The revised classifier matched 70/70 authored routing cases, compared with 36/70 for `23efc58`, with no regressions among the previously matching cases. The corpus was used for development, so this is not held-out accuracy. Existing protocol/retention tests remain applicable. See [the evaluation report and reproduction commands](routing-evaluation.md).
+
+The local suite reported **164 tests: 163 passed and one Unix-listener test was skipped** because the sandbox denied binding. The new tests cover routing-rubric validation and agreement, quoted clause boundaries, and the opt-in answer runner's grading, usage handling, failure behavior, private reports, and offline default.
+
+The optional answer-quality runner was checked against local `codex exec --help`, exercised through its offline listing, and tested with fake CLI results. A read-only live `doctor` probe was denied control-socket access. No new model inference, real answer-quality score, or cost result is claimed. CI runs the offline evaluation/runner tests only.
+
 ## Live switching
 
 `turn/settings/update` was present in the inspected local experimental schema but is not described as a stable method on the fetched public App Server page. In the diagnosed 0.160.0 setup it required `step_model_switching`, a feature marked under development and disabled by default in that setup.

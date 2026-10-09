@@ -221,6 +221,107 @@ def task_prompt(task):
     return (text[boundary.end():].strip(), True) if boundary else (text, False)
 
 
+PROFILE_LEVELS = {"precheck": 0, "easy": 0, "coding": 1, "review": 1, "terra": 1,
+                  "planning": 2, "debugging": 2, "deep-debug": 3}
+ACTION_WORDS = (r"plan|design|architect|compare|evaluate|assess|recommend|implement|execute|carry out|build|refactor|"
+                r"develop|create|add|update|change|write|fix|correct|rename|replace|format|reformat|"
+                r"debug|diagnose|investigate|trace|troubleshoot|review|audit|summarize|summarise|extract|"
+                r"explain|define|describe|run|rerun|list|check")
+
+
+def routing_prose(task):
+    """Use instructions before fenced/quoted/log tails, never pasted payloads."""
+    if task.strip().startswith((">", '"', "'", "```", "~~~")):
+        return ""
+    return re.split(r"```|~~~|\n\s*>|\n\s*(?:traceback|error:|stack trace|logs?:)",
+                    task.strip(), maxsplit=1, flags=re.I)[0].lower()
+
+
+def normalize_request(text):
+    return re.sub(r"^(?:(?:now|next)[,:]?\s+)?(?:(?:can|could|would) you\s+|let(?:'s| us)\s+)?(?:please\s+)?",
+                  "", text.strip())
+
+
+def instruction_clauses(prose):
+    # Consume quoted spans before looking for separators so a literal sentence
+    # such as "implement a compiler; investigate a deadlock" stays data.
+    quoted = r"""`[^`\n]*`|"(?:\\.|[^"\\])*"|(?<!\w)'(?:\\.|[^'\\])*'"""
+    action = r"(?:(?:do not|don't)\s+)?(?:" + ACTION_WORDS + r")\b"
+    boundary = (r"[;!?]\s*|\.\s+|\n+|\b(?:and then|then|but|instead)\b|"
+                r"\band\s+(?=" + action + r")|,\s+(?=" + action + r")")
+    start = 0
+    for match in re.finditer(r"(?P<quoted>" + quoted + r")|(?P<boundary>" + boundary + ")", prose):
+        if match.lastgroup == "boundary":
+            yield prose[start:match.start()]
+            start = match.end()
+    yield prose[start:]
+
+
+def repeated_failure(prose):
+    reported = re.match(
+        r"(?:(?:two|2|three|3|multiple) (?:distinct )?(?:fixes|attempts) (?:have )?(?:failed|did not work)"
+        r"|(?:it is |it's )?still failing after (?:two|2|three|3|multiple) (?:fixes|attempts))\b", prose)
+    infrastructure = re.search(
+        r"\b(?:permission denied|operation not permitted|network outage|dns failure|connection refused|"
+        r"missing dependenc\w*|dependenc\w* (?:is |are )?missing|sandbox.{0,35}(?:denied|blocked))\b", prose)
+    return bool(reported and not infrastructure)
+
+
+def classify_clause(prose):
+    """Interpret the requested action before applying domain/scope signals."""
+    prose = normalize_request(prose.strip(" ,.;!?"))
+    if not prose or prose.startswith(("/", ">", '"', "'", "`")):
+        return None
+    if re.match(r"(?:do not|don't|never|avoid|no need to|without)\b", prose):
+        return None
+    hard_failure = re.search(
+        r"\b(?:race conditions?|deadlocks?|data corruption|memory corruption)\b|"
+        r"\b(?:records?|data|memory)\b.*\bcorrupt\w*\b.*\bconcurrent\w*\b", prose)
+    consequential = re.search(r"\b(?:security|authentication|authorization|oauth|payments?|production|migration|cryptograph\w*)\b", prose)
+    failure = hard_failure or re.search(r"\b(?:crash\w*|fail(?:s|ing|ed|ure)?|flaky|broken|regressions?|bugs?|errors?)\b", prose)
+    # Literal edits and summaries can mention an incident without diagnosing it.
+    if (re.match(r"(?:fix|correct)\s+(?:(?:the|a|an|this|that|spelling)\s+){0,4}(?:typo|spelling)\b", prose)
+            or re.match(r"(?:format|reformat)\b", prose)
+            or re.match(r"(?:rename|replace)\b.*\b(?:label|text|string)\b", prose)):
+        return "easy", "A bounded mechanical edit"
+    if re.match(r"(?:summarize|summarise|extract)\b", prose):
+        return "easy", "Summarize or extract supplied material"
+    if re.match(r"(?:run|rerun)\b.*\b(?:tests?|lint|linter|typecheck|type check|checks)\b", prose) or re.match(r"(?:check\s+)?git status\b", prose):
+        return "precheck", "Run existing checks"
+    if re.match(r"list\b.*\b(?:files|directories|entries|directory contents)\b|run\s+pwd\b", prose):
+        return "easy", "Simple directory inspection"
+    investigative = re.match(r"(?:debug|diagnose|investigate|trace|troubleshoot|find the root cause)\b", prose)
+    causal = re.match(r"(?:explain why|why\b|what (?:is|was) causing|explain how to fix)\b", prose)
+    if investigative or (causal and failure) or (re.match(r"fix\b", prose) and failure):
+        return ("deep-debug", "Investigating a named difficult failure") if hard_failure else ("debugging", "Root-cause investigation or failure analysis")
+    if re.match(r"(?:explain|define|describe|what (?:is|are)|what does|give (?:me )?(?:a )?(?:brief )?definition)\b", prose):
+        if re.search(r"\b(?:tradeoffs|trade-offs|in depth|failure scenarios)\b", prose):
+            return "planning", "Substantial analysis or tradeoffs"
+        bounded = re.search(r"\b(?:one|two|three|[123]) (?:sentences?|bullets?)\b|\b(?:brief\w*|simple terms)\b", prose)
+        definition = re.match(r"(?:define\b|what (?:is|are) (?:a|an|the)\b|give (?:me )?(?:a )?(?:brief )?definition\b)", prose)
+        if bounded or definition:
+            return "easy", "A bounded explanation or definition"
+        return None
+    if re.match(r"(?:plan|design|architect|compare|evaluate|assess|recommend)\b", prose):
+        return "planning", "Planning, analysis, or design tradeoffs"
+    if re.match(r"(?:preflight|pretest)\b", prose):
+        return ("planning", "Consequential preparation needs interpretation") if consequential else ("precheck", "Run existing checks")
+    implementation = re.match(r"(?:implement|execute|carry out|build|refactor|develop|create|add|update|change|write|fix)\b", prose)
+    review = re.match(r"(?:review|audit|check (?:my|the|this) (?:code|changes|implementation))\b", prose)
+    if implementation or review:
+        if consequential:
+            return "planning", "Consequential implementation or review"
+        large_system = re.match(
+            r"(?:implement|build|develop|create|write)\s+(?:(?:a|an|the|complete|full|new)\s+)*"
+            r"(?:compiler|distributed database|database engine|operating system|consensus algorithm)\b", prose)
+        if large_system and not re.search(r"\b(?:toy|educational|learning exercise)\b", prose):
+            return "planning", "Broad system implementation needs deeper reasoning"
+        if re.match(r"(?:implement|write|create)\b.*\b(?:one-line|single-line) (?:helper|function)\b", prose):
+            return "easy", "An explicitly bounded helper"
+        return ("review", "Review or check interpretation") if review else ("coding", "Implementation work")
+    return None
+
+
 def classify(task, phase=None, failed_attempts=0):
     """Conservative heuristics. Ambiguous follow-ups preserve the existing model."""
     task, _ = task_prompt(task)
@@ -240,36 +341,19 @@ def classify(task, phase=None, failed_attempts=0):
         return phase, "Task phase selected explicitly"
     if failed_attempts >= 2:
         return "deep-debug", "Two distinct unsuccessful fixes"
-    # Model requests need semantic interpretation by the skill; do not override them.
-    if re.search(r"\b(?:use|switch to|stay on|keep using)\s+(?:(?:gpt[- ]\d[^\s]*|the)\s+)?(?:sol|terra|luna|astra|gpt[- ]\d)|\b(?:none|minimal|low|medium|high|xhigh|extra.high|max|ultra)\s+(?:reasoning|effort)\b", task, re.I):
+    # Only a leading model/effort request reserves selection for the resolver.
+    if re.match(r"(?:please\s+)?(?:use|switch to|stay on|keep using)\s+(?:the\s+)?(?:sol|terra|luna|astra|gpt-[\w.-]+|(?:none|minimal|low|medium|high|xhigh|extra[ -]high|max|ultra)\s+(?:reasoning|effort))\b", task, re.I):
         return None, "Explicit model or effort request; retain selection for the skill to resolve"
     if not task or task.startswith("/"):
         return None, "No routable task"
-    # Do not treat a pasted log, quotation, or source file as a fresh routing instruction.
-    prose = re.split(r"```|\n\s*>|\n\s*(?:traceback|error:|stack trace)", task, maxsplit=1, flags=re.I)[0]
-    prose = prose.lower()
-    if re.search(r"\b(?:race condition|deadlock|data corruption|memory corruption|distributed consensus)\b", prose):
-        return "deep-debug", "A difficult failure mode is named"
-    if re.search(r"\b(?:debug|diagnose|root cause|investigate|flaky|crash|failing|broken|regression)\b", prose):
-        return "debugging", "Root-cause investigation or failure analysis"
-    if re.search(r"\b(?:security|authentication|authorization|oauth|payment|production|migration|cryptograph\w*)\b", prose):
-        return "planning", "Consequences justify deeper reasoning"
-    if re.match(r"(?:please\s+)?(?:implement|execute|carry out|build)\b.*\bplan\b", prose):
-        return "coding", "Implementing an existing plan"
-    if re.search(r"\b(?:plan|architecture|tradeoffs|trade-offs|design a system|design the system)\b", prose):
-        return "planning", "Planning or design tradeoffs"
-    if re.search(r"\b(?:implement|build|refactor|develop|create|add|update|change|write|fix)\b", prose):
-        if re.search(r"\b(?:typo|spelling|formatting)\b", prose) and len(prose.split()) <= 35:
-            return "easy", "A narrowly scoped mechanical change"
-        return "coding", "Implementation work"
-    if re.search(r"\b(?:review|audit|check (?:my|the|this) (?:code|changes|implementation))\b", prose):
-        return "review", "Review or check interpretation"
-    if re.search(r"\b(?:run|rerun)\b.*\b(?:tests?|lint|linter|typecheck|type check|checks)\b|\b(?:git status|preflight|pretest)\b", prose):
-        return "precheck", "Run existing checks"
-    if re.search(r"\b(?:summarize|summarise|extract|typo|spelling|formatting)\b", prose):
-        return "easy", "Focused summary, extraction, or mechanical edit"
-    if re.search(r"\blist\b.*\b(?:files|directories|entries|directory contents)\b|\brun\s+pwd\b", prose):
-        return "easy", "Simple directory inspection"
+    prose = normalize_request(routing_prose(task))
+    if repeated_failure(prose):
+        return "deep-debug", "User reports repeated unsuccessful fixes"
+    choices = [choice for clause in instruction_clauses(prose) if (choice := classify_clause(clause))]
+    if choices:
+        # Mixed requests keep the strongest affirmative work signal. Prefer
+        # easy/medium over precheck/low when both occur at the lowest level.
+        return max(choices, key=lambda item: (PROFILE_LEVELS[item[0]], item[0] == "easy"))
     return None, "Uncertain task or continuation; keep the current choice"
 
 
@@ -279,20 +363,8 @@ def selective_phase(task, previous):
     Levels order the shipped routing profiles, not the capability of arbitrary
     model IDs. A short check never lowers the selection of an ongoing task.
     """
-    prose = re.split(r"```|\n\s*>|\n\s*(?:traceback|error:|stack trace)", task.strip(), maxsplit=1, flags=re.I)[0].lower()
-    prose = re.sub(r"^(?:(?:now|next)[,:]?\s+)?(?:(?:can|could|would) you\s+|let(?:'s| us)\s+)?(?:please\s+)?", "", prose)
-    repeated = re.match(
-        r"(?:(?:two|2|three|3|multiple) (?:distinct )?(?:fixes|attempts) (?:have )?(?:failed|did not work)"
-        r"|(?:it is |it's )?still failing after (?:two|2|three|3|multiple) (?:fixes|attempts))\b", prose)
-    if repeated:
-        profile, reason = "deep-debug", "User reports repeated unsuccessful fixes"
-    else:
-        # Descriptions, explanatory questions, negations, and quoted examples do not
-        # count as an instruction to change phases. Explicit boundaries still
-        # use the broader first-task classifier.
-        if not re.match(r"(?:plan|design|implement|execute|carry out|build|refactor|develop|create|add|update|change|write|fix|debug|diagnose|investigate|trace|review|audit|summarize|summarise|extract)\b", prose):
-            return None, "No clear work-phase instruction"
-        profile, reason = classify(prose)
+    prose = normalize_request(routing_prose(task))
+    profile, reason = classify(task)
     if profile is None or profile == previous:
         return None, "Continuing the selected work phase"
     if profile == "easy" and re.match(r"(?:summarize|summarise|extract)\b", prose):
@@ -301,9 +373,7 @@ def selective_phase(task, previous):
             return profile, "A substantial summary or extraction batch is requested"
     if previous == "planning" and profile == "coding" and re.match(r"(?:implement|execute|carry out|build)\b.*\bapproved plan\b", prose):
         return profile, "Moving from planning to implementation of the approved plan"
-    levels = {"precheck": 0, "easy": 0, "coding": 1, "review": 1, "terra": 1,
-              "planning": 2, "debugging": 2, "deep-debug": 3}
-    if profile in levels and levels[profile] > levels.get(previous, -1) and levels[profile] > 0:
+    if profile in PROFILE_LEVELS and PROFILE_LEVELS[profile] > PROFILE_LEVELS.get(previous, -1) and PROFILE_LEVELS[profile] > 0:
         return profile, reason
     return None, "Retaining selection through a brief or lower-demand follow-up"
 

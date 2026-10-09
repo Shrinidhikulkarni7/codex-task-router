@@ -10,6 +10,8 @@ From a checkout:
 python3 -m unittest discover -s tests -v
 python3 install.py --help
 python3 skills/codex-model-router/scripts/router.py --help
+python3 evals/evaluate.py
+python3 evals/task_quality.py
 ```
 
 The test suite uses temporary Codex homes, model catalogs, and independent protocol peers. It must run without a Codex login, network access, credentials, global installation, or inference calls. The Unix-listener test skips only when the host explicitly denies socket binding; retain the process-pipe coverage when that happens.
@@ -31,6 +33,8 @@ For a routing or protocol change, add a regression test for the observable behav
 - Distinguish request submission, acknowledgment, completion, and measured inference in diagnostics and prose.
 
 The local rule classifier is intentionally inspectable. A new trigger should include realistic positive and negative examples, especially pasted logs, ambiguous continuations, and mixed tasks. Changes to default model preferences should explain the intended policy choice without presenting it as a benchmark result.
+
+The authored routing corpus in `evals/routing_cases.jsonl` supplies regression expectations and a rationale per case. Add realistic contrast cases rather than silently changing labels to fit a new implementation. A passing corpus is development-set agreement, not general accuracy. Keep the [evaluation guide](docs/routing-evaluation.md) and dated result provenance accurate. `task_quality.py` lists cases offline by default; never add `--run` to routine CI, because it starts authenticated inference.
 
 ## Testing a real terminal
 

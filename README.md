@@ -13,6 +13,8 @@ New task: List files here          → Luna · medium
 
 These are examples of the shipped rules, subject to your account's available models. Classification is local Python logic; it makes no separate LLM request. The router uses your existing Codex authentication and needs no Python packages or separate API key.
 
+The rules consider the requested action and stated scope before domain keywords. A one-sentence definition of a deadlock selects `easy`; investigating an actual deadlock selects `deep-debug`. A one-line pure helper selects `easy`, while building a whole compiler selects the higher-reasoning `planning` profile. These remain heuristics. The [evaluation guide](docs/routing-evaluation.md) records 70 authored routing cases, before/after results, and optional checks of actual model answers.
+
 ## Watch the demo
 
 https://github.com/user-attachments/assets/82a66c04-8994-4e4b-8a9a-78433368de8e
@@ -162,5 +164,7 @@ python3 -m unittest discover -s tests -v
 ```
 
 Tests cover routing, validation, protocol framing, approvals, lifecycle, and isolated installer behavior. The real Unix-listener smoke test skips when the host explicitly forbids binding; process-pipe protocol tests still run. See [contributing](CONTRIBUTING.md), [security and privacy](SECURITY.md), and [verification limits](docs/compatibility.md).
+
+Run the routing rubric with `python3 evals/evaluate.py`. `python3 evals/task_quality.py` lists the optional answer checks without inference. Real answer checks require `--run` and consume normal Codex usage; see [evaluation commands and limits](docs/routing-evaluation.md).
 
 No license has been selected for this repository.

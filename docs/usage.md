@@ -69,7 +69,7 @@ python3 "$ROUTER_SCRIPT" auto --sock /absolute/path/to/control.sock
 
 Replace `THREAD_ID` and example paths with your own values. Use the native client's thread information to obtain the ID. Resuming through `auto` preserves the existing conversation; the proxy does not create a replacement task to switch models.
 
-The default `routing_mode` is `selective`. Describe the whole task in the first prompt. Brief checks and continuations retain the accepted selection; clear work-phase instructions can change it. Wait for each response to finish before submitting the next prompt. The proxy handles text `turn/start` requests, not individual tool calls, image-only input, tool-output turns, or active-turn steering. It applies to this proxy connection, not to separate app windows or ordinary terminals. Exit the native TUI normally to close the proxy and its temporary socket.
+The default `routing_mode` is `selective`. Describe the whole task and its scope in the first prompt. Brief checks and continuations retain the accepted selection; clear work-phase instructions can change it. The classifier distinguishes bounded definitions and literal edits from investigations, and recognizes some broad implementation scopes. Wait for each response to finish before submitting the next prompt. The proxy handles text `turn/start` requests, not individual tool calls, image-only input, tool-output turns, or active-turn steering. It applies to this proxy connection, not to separate app windows or ordinary terminals. Exit the native TUI normally to close the proxy and its temporary socket.
 
 For example, send these prompts one at a time in a new `auto` conversation:
 
@@ -111,7 +111,7 @@ For an eligible new text prompt in default selective mode:
 2. A leading `[route:PROFILE]` selects that profile. An unknown profile is an error, even when a choice is retained.
 3. Supported explicit model or effort wording is resolved against the live catalog.
 4. If a selection exists without a leading `New task:` or `[route:new]`, retain pinned choices. For unpinned choices, the [selective phase rules](selective-routing.md#recognized-phase-changes) can reselect; otherwise retain model and effort without a catalog lookup.
-5. Otherwise the broader initial-task classifier chooses a profile for recognizable work.
+5. Otherwise the classifier chooses a profile from affirmative action and scope signals in the initial/new task.
 6. An otherwise unclassified initial/new task in Codex Plan mode uses `planning`.
 7. If no profile applies, keep the last accepted choice or the native choice when none is known.
 
@@ -172,7 +172,9 @@ Selection takes the first available non-hidden model, then validates the effort 
 
 `auto` reloads policy for each eligible new prompt. Profile edits apply when a selection is next requested: a boundary/override, or a recognized selective phase change. Repeated work in the same phase retains its accepted settings. Switching modes takes effect on the next eligible prompt: `task` retains the latest choice, `prompt` reclassifies, and `selective` uses phase rules while honoring known pins. Other commands read policy when invoked. No edit changes an active turn. Set top-level `"enabled": false` to stop automatic selections; the proxy still forwards traffic and records skipped eligible prompts.
 
-The classifier uses ordered text rules, not a learned difficulty score. Named concurrency or corruption failures select `deep-debug`; investigation wording selects `debugging`; consequential areas such as authentication or migration select `planning`; implementation, review, existing checks, and simple edits have separate rules. Order matters, so mixed prompts can route differently from a single isolated task. The rule implementation is [classify in router.py](../skills/codex-model-router/scripts/router.py). A profile name is a routing preference, not evidence that the work is easy or difficult.
+The classifier uses ordered text rules, not a learned difficulty score. It considers each recognized affirmative action: bounded definitions, literal edits, summaries, and existing checks can remain small even when they mention difficult concepts. An actual investigation of concurrency/corruption selects `deep-debug`; other investigations select `debugging`. Consequential implementation/review and broad system construction can select `planning`, meaning higher reasoning without changing the requested work. Routine implementation selects `coding`. A one-line helper can select `easy`, but a one-line authorization change remains consequential.
+
+Sentence/step boundaries allow mixed requests to keep their strongest recognized work signal. Quoted spans do not create extra steps, negated clauses are ignored, and fenced/log tails do not supply routing instructions. These are narrow English heuristics: unusual wording and nuanced context can still be missed. The [70-case evaluation](routing-evaluation.md) measures agreement with an authored rubric, not universal accuracy or task quality. See [classify in router.py](../skills/codex-model-router/scripts/router.py) for the implementation.
 
 ## Preview without starting a task
 

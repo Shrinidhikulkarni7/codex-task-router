@@ -60,6 +60,8 @@ The optional Laya classifier is separate from live switching. It runs only in th
 
 The expanded local suite reported **192 tests: 190 passed and two socket tests skipped** because the sandbox denied binding (Unix proxy and loopback HTTP). Coverage includes shadow disagreement, active recommendations, pins/manual updates during classification, retention, catalog rejection, bounded HTTP, response validation, cooldown, private reports, and an offline evaluation default. The original routing corpus remained 70/70. Routine CI uses fixtures and does not install or run Laya.
 
+For implementation commit `b423876`, [all four GitHub Actions jobs](https://github.com/Shrinidhikulkarni7/codex-task-router/actions/runs/37950317626) completed successfully on macOS and Ubuntu with Python 3.11 and 3.13. That is remote CI evidence for the adapter and repository checks, not real Laya inference or a live Codex task-quality result.
+
 ## Live switching
 
 `turn/settings/update` was present in the inspected local experimental schema but is not described as a stable method on the fetched public App Server page. In the diagnosed 0.160.0 setup it required `step_model_switching`, a feature marked under development and disabled by default in that setup.

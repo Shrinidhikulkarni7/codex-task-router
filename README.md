@@ -1,6 +1,8 @@
 # Codex task router
 
-**Match the model to the work, without switching for every small follow-up.** The `auto` command opens one native Codex terminal conversation through a local proxy. Its default selective mode retains model and effort for brief checks and continuations, and can reselect when a clear instruction calls for a different work phase. Selection happens before the next turn starts.
+**Match the Codex model and reasoning effort to the work, while keeping related follow-ups together.** The `auto` command opens one native Codex terminal conversation through a local proxy. Its default selective mode retains settings for brief checks and continuations, and can reselect when a clear instruction calls for a different work phase. Selection happens before the next turn starts.
+
+Use the built-in Python rules, or add a local Laya service to evaluate semantic task classification. The router handles the Codex connection, model preferences, retention, manual overrides, and selection diagnostics in either case.
 
 ```text
 Plan the cache architecture        → Sol 6.1 · high
@@ -15,7 +17,22 @@ These are examples of the shipped rules, subject to your account's available mod
 
 The rules consider the requested action and stated scope before domain keywords. A one-sentence definition of a deadlock selects `easy`; investigating an actual deadlock selects `deep-debug`. A one-line pure helper selects `easy`, while building a whole compiler selects the higher-reasoning `planning` profile. These remain heuristics. The [evaluation guide](docs/routing-evaluation.md) records 70 authored routing cases, before/after results, and optional checks of actual model answers.
 
-For unfamiliar wording, the [optional Laya integration](skills/codex-model-router/references/laya.md) adds `shadow` comparisons and experimental active classification to `auto`. Rules remain the default. Pins, phase retention, and model validation stay authoritative. Real Laya accuracy and savings have not been established here.
+## Why use this with Laya?
+
+[Laya](https://github.com/NandhaKishorM/laya) can interpret a request and return a typed decision. In this integration, that decision is a work profile such as `coding`, `planning`, or `retain`. This repository connects that recommendation to your Codex workflow:
+
+| Responsibility | What handles it |
+| --- | --- |
+| Interpret the requested work | Built-in Python rules, or optional local Laya classification |
+| Decide whether settings may change | The router's task boundaries, phase rules, and explicit-choice pins |
+| Map a profile to a model and reasoning effort | Your editable `policy.json`, checked against Codex's available catalog |
+| Apply the selection | The local proxy, before Codex admits the next turn in the same conversation |
+| Execute the task and request approvals | Codex, using its normal tools, permissions, and authentication |
+| Explain the selection and expose reported usage | Local routing history, `status`, and connection diagnostics |
+
+This is useful when you want automatic selection inside the native Codex terminal with those controls already connected. Laya is an optional decision backend; the project works without it. Adding Laya does not establish better routing or lower cost, and this repository makes no accuracy or savings claim over Laya or other routers.
+
+Laya can propose a profile, but cannot invent model IDs or bypass catalog validation. In the default selective routing mode, it cannot override a pinned choice; an unusable response retains an ongoing task's settings, while a new task falls back to the Python rules. The [Laya guide](skills/codex-model-router/references/laya.md) covers setup, data handling, timeouts, comparison reports, and these limits.
 
 ## Watch the demo
 
@@ -29,11 +46,16 @@ Animation, audio stems, script, rebuild instructions and voice attribution are i
 
 ## Status and compatibility
 
-This is an independent, experimental integration. The user reported that `auto` worked in a real terminal on 2026-10-07 with the Codex 0.160.0 setup. Local CLI inspection subsequently found 0.160.1; that is not a separate runtime verification. Automated tests use simulated clients and servers and make no inference requests.
+**Release status: experimental.** Validation, manual-choice protection, bounded requests, failure handling, private diagnostics, and cleanup are implemented. These safeguards have automated coverage; they do not establish a production support guarantee.
 
-Selective routing passes local behavior/protocol tests. The earlier task mode also passed a six-turn user-terminal check, verified against routing records and the local session log. That live check does not validate the newly added phase rules, and cost savings remain unproven. See the [recorded checks](docs/compatibility.md#evidence-as-of-2026-10-08) and [live usage measurements](docs/usage-and-cost.md#live-task-retention-verification-2026-10-08).
+Evidence for the Laya integration as of 2026-10-09:
 
-OpenAI documents the app-server and WebSocket interface as experimental and unsupported for production workloads. This repository adds validation, diagnostics, cleanup, and protocol tests, but cannot turn that upstream interface into a production support guarantee. See [compatibility and verification](docs/compatibility.md). [Official App Server documentation](https://learn.chatgpt.com/docs/app-server#protocol).
+- **192 automated tests:** locally, 190 passed and two socket tests skipped because the sandbox denied binding. All four [CI jobs for the implementation](https://github.com/Shrinidhikulkarni7/codex-task-router/actions/runs/37950317626) passed on macOS/Linux with Python 3.11/3.13. CI uses fixtures and makes no model inference requests.
+- **70/70 authored rule cases matched.** These cases were used during development, so the result is not a measure of accuracy on unseen tasks.
+- **Real Codex use was checked separately.** A six-turn user-terminal check verified task retention, explicit selection, completion, and usage records. It does not validate every selective phase or the Laya path. The inspected CLI was 0.160.1; compatibility with future versions is not assumed.
+- **Live Laya quality remains unverified.** The HTTP adapter and failure paths have simulated-response coverage, and a 24-case comparison runner is available. The development environment prevented real local-service inference. No Laya accuracy, latency, task-quality, or cost improvement has been measured here.
+
+OpenAI documents the app-server and WebSocket interface as experimental and unsupported for production workloads. Validate the intended Codex version and representative tasks before relying on this integration. Start Laya in shadow mode and inspect its recommendations before enabling active classification. See [compatibility and verification](docs/compatibility.md), [live usage measurements](docs/usage-and-cost.md#live-task-retention-verification-2026-10-08), and the [official App Server documentation](https://learn.chatgpt.com/docs/app-server#protocol).
 
 ## Quick start
 
@@ -73,6 +95,30 @@ python3 "$ROUTER_SCRIPT" status --thread THREAD_ID
 ```
 
 For proxy records, `accepted` means Codex acknowledged the selected turn request. When the daemon reports usage, `token_usage` also contains its latest token and cache counters. These are thread snapshots, not per-model billing or proof of which model performed inference. See [tokens, cache reuse, and comparison instructions](docs/usage-and-cost.md).
+
+## Add Laya optionally
+
+The default installation is ready to use with Python rules. To try Laya, follow the [complete local-service setup and comparison guide](skills/codex-model-router/references/laya.md). It includes the pinned service dependency, checkpoint settings, evaluation commands, policy configuration, and rollback to rules.
+
+Only `auto` uses the top-level `classifier` setting in `policy.json`:
+
+| `classifier.mode` | Effect |
+| --- | --- |
+| `rules` | Default. Local Python classification with no classifier inference request |
+| `shadow` | Ask local Laya for a recommendation and record agreement; Python rules still control selection |
+| `laya` | Experimental active mode. A validated Laya recommendation supplies the profile candidate, subject to the same retention and model checks |
+
+`shadow` waits for the local service, so it adds latency. The default request deadline is two seconds. Requests contain the current prompt, previous profile, and a follow-up flag; the adapter does not send the full conversation or read project files. The endpoint is restricted to literal loopback addresses. Laya needs its own dependencies, downloaded model weights, and local compute; its classification does not consume Codex inference tokens.
+
+`classifier.mode` answers **how to interpret a task**. The separate `routing_mode` setting answers **when to reconsider the selection**. Explicit requests take priority over either classifier. Selective/task modes preserve their retention behavior; opt-in prompt mode reclassifies ordinary prompts and uses rule fallback on an unusable Laya response. `preview`, `run`, `apply`, and the legacy hook continue to use Python rules.
+
+The 24-case Laya comparison tool lists its cases without contacting a service:
+
+```sh
+python3 evals/laya_compare.py
+```
+
+After starting the local service, use the guide's explicit `--run` commands to obtain comparison reports. The reports distinguish usable Laya recommendations from retention and fallback results. Set `classifier.mode` back to `rules` to stop Laya calls; use a new-task boundary or explicit choice if you also want to change an ongoing task's selection.
 
 ## Tokens and cache reuse
 
@@ -121,7 +167,7 @@ New task: Design the worker queue and retry policy.
 Use Luna with medium reasoning to list the files.
 ```
 
-A successful native `/model` update observed through the proxy pins the choice, as does an accepted explicit profile/model/effort request. `New task:` allows automatic selection again while keeping the same conversation and history. The router does not infer task completion or count tool failures. It recognizes specific user reports of repeated unsuccessful fixes. See [selection precedence](docs/usage.md#selection-precedence) and [the rules and their limits](docs/selective-routing.md).
+A successful native `/model` update observed through the proxy pins the choice in selective/task modes, as does an accepted explicit profile/model/effort request. `New task:` allows automatic selection again while keeping the same conversation and history. Opt-in prompt mode instead reclassifies ordinary prompts; a native model update protects the next accepted ordinary prompt. The router does not infer task completion or count tool failures. It recognizes specific user reports of repeated unsuccessful fixes. See [selection precedence](docs/usage.md#selection-precedence) and [the rules and their limits](docs/selective-routing.md).
 
 The shipped top-level policy is `"routing_mode": "selective"`; policies without this field use the same default. Existing policies explicitly set to `"task"` or `"prompt"` keep that behavior. Choose `task` to retain settings until a boundary/override, or `prompt` to classify each eligible prompt. Restart `auto` after updating Python source; the installed skill links directly to this checkout.
 
@@ -135,17 +181,30 @@ Model availability varies. An explicit Terra profile will fail visibly when Terr
 
 ## How it works
 
+The default selective session follows this path:
+
 ```mermaid
-flowchart LR
-    U[Your next prompt] --> T[Native Codex terminal]
-    T <-->|private Unix WebSocket| P[Local routing proxy]
-    R[policy.json and local rules] --> P
-    P <-->|catalog and forwarded messages| D[Existing Codex daemon]
-    D --> A[Turn admission with selected model and effort]
-    A --> C[Same conversation]
+flowchart TD
+    U[Prompt in the native Codex terminal] --> P[Local proxy checks eligibility and explicit choices]
+    P -->|automatic classification is eligible| C[Python rules or optional local Laya]
+    C --> R[Task retention and phase policy]
+    P -->|explicit or retained choice| V[Resolve settings and validate any new selection]
+    R --> V
+    J[policy.json model and effort preferences] --> V
+    D[Connected Codex model catalog] --> V
+    V --> A[Forward turn/start to the existing Codex daemon]
+    A --> T[Codex executes in the same conversation]
+    A --> H[Record acknowledgment and observe completion and usage]
 ```
 
-The proxy updates `model` and `effort` on eligible `turn/start` requests, including collaboration-mode overrides. It preserves other fields, forwards approvals to the native client, and keeps the conversation's thread ID. Read [architecture and data handling](docs/architecture.md) for state, transport, and failure behavior.
+1. **Open the routed session.** `auto` checks the existing daemon, creates a private Unix socket, and launches the native Codex terminal through it. Only traffic through that session is routed.
+2. **Check the incoming turn.** The proxy reads policy and examines eligible text prompts. Active-turn steering, tool-output turns, and identified ephemeral threads keep Codex's settings. Explicit and pinned choices take precedence over automatic classification.
+3. **Propose a work profile.** Python rules inspect the action and scope. With Laya enabled, eligible prompts also go to the local classifier: shadow mode records the comparison; active mode may use a validated recommendation. Unrecognized rule input can retain the native/current choice.
+4. **Apply retention and resolve settings.** The routing mode decides whether a candidate can change the current selection. When a new selection is needed, the router maps the profile to configured model/effort preferences and checks the live catalog. An unavailable required model or effort produces a visible error before submission.
+5. **Submit the turn.** The proxy updates model/effort fields, including collaboration-mode overrides, while preserving prompt content, conversation ID, permissions, and other fields. Codex remains responsible for admission, execution, and approvals.
+6. **Record the result.** Selection state is committed only after a valid turn acknowledgment. Completion and token/cache notifications update local history when available. `status` shows those records; a rejected or unacknowledged turn is not reported as an accepted selection.
+
+Read [architecture and data handling](docs/architecture.md) for transport, state, privacy, shutdown, and failure details, or [the selective decision process](docs/selective-routing.md) for exactly which follow-ups may switch.
 
 ## Optional live hook
 
@@ -165,7 +224,7 @@ Start a new Codex session and use `/hooks` to review and trust **Selecting Codex
 python3 -m unittest discover -s tests -v
 ```
 
-Tests cover routing, validation, protocol framing, approvals, lifecycle, and isolated installer behavior. The real Unix-listener smoke test skips when the host explicitly forbids binding; process-pipe protocol tests still run. See [contributing](CONTRIBUTING.md), [security and privacy](SECURITY.md), and [verification limits](docs/compatibility.md).
+Tests cover routing, validation, protocol framing, approvals, lifecycle, isolated installer behavior, and the Laya adapter. Real Unix-listener and loopback HTTP tests skip when the host explicitly forbids binding; process-pipe protocol tests and buffered HTTP fixtures still run. See [contributing](CONTRIBUTING.md), [security and privacy](SECURITY.md), and [verification limits](docs/compatibility.md).
 
 Run the routing rubric with `python3 evals/evaluate.py`. `python3 evals/task_quality.py` lists the optional answer checks without inference. Real answer checks require `--run` and consume normal Codex usage; see [evaluation commands and limits](docs/routing-evaluation.md).
 

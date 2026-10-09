@@ -176,7 +176,7 @@ The default classifier uses ordered text rules, not a learned difficulty score. 
 
 Sentence/step boundaries allow mixed requests to keep their strongest recognized work signal. Quoted spans do not create extra steps, negated clauses are ignored, and fenced/log tails do not supply routing instructions. These are narrow English heuristics: unusual wording and nuanced context can still be missed. The [70-case evaluation](routing-evaluation.md) measures agreement with an authored rubric, not universal accuracy or task quality. See [classify in router.py](../skills/codex-model-router/scripts/router.py) for the implementation.
 
-`auto` also supports optional local Laya classification through top-level `classifier.mode`: `rules` (default), `shadow` (record recommendations but keep rules), or `laya` (experimental active recommendations). Pins, phase retention, and catalog validation remain in control. See the [complete Laya setup and evaluation guide](../skills/codex-model-router/references/laya.md). Other commands below continue to use the rule classifier; `preview` is not a Laya preview.
+`auto` also supports optional local Laya classification through top-level `classifier.mode`: `rules` (default), `shadow` (record recommendations but keep rules), or `laya` (experimental active recommendations). Selective/task retention and catalog validation remain in control; prompt mode keeps its per-prompt behavior. See the [complete Laya setup and evaluation guide](../skills/codex-model-router/references/laya.md). Other commands below continue to use the rule classifier; `preview` is not a Laya preview.
 
 ## Preview without starting a task
 

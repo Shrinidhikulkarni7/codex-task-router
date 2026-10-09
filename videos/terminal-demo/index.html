@@ -1,0 +1,123 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Codex Task Router — terminal replay</title>
+<style>html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#F3F0E8}#art,#art svg{display:block;width:100%;height:100%}</style></head><body>
+<div id="terminal-demo" data-composition-id="terminal-demo" data-no-timeline data-width="1080" data-height="1920" data-duration="35" data-fps="30"><div id="art" class="clip" data-start="0" data-duration="35" data-track-index="0"></div></div>
+<script>window.DEMO_SESSION={"source": "Verified native-session records, 2026-10-08", "routing_mode": "task", "presentation": "Reconstructed terminal; prompt excerpts, anonymized project path, edited timing", "turns": [{"step": 1, "prompt": "New task: Run pwd and list the first five entries. Use `pwd && ls -1A | head -n 5`. Do not edit files. Return only the command output.", "prompt_excerpt": "New task: Run pwd and list the first five entries.", "command": "pwd && ls -1A | head -n 5", "output": "~/codex-task-router\n.DS_Store\n.git\n.github\n.gitignore\nCONTRIBUTING.md", "model": "gpt-6-luna", "effort": "medium", "reason": "New task: Simple directory inspection", "status": "accepted", "turn_status": "completed"}, {"step": 2, "prompt": "Run pwd and list the first five entries. Use `pwd && ls -1A | head -n 5`. Do not edit files. Return only the command output.", "prompt_excerpt": "Run pwd and list the first five entries.", "command": "pwd && ls -1A | head -n 5", "output": "~/codex-task-router\n.DS_Store\n.git\n.github\n.gitignore\nCONTRIBUTING.md", "model": "gpt-6-luna", "effort": "medium", "reason": "Retaining model and effort for current task", "status": "accepted", "turn_status": "completed"}, {"step": 3, "prompt": "[route:coding] Run pwd and list the first five entries. Use `pwd && ls -1A | head -n 5`. Do not edit files. Return only the command output.", "prompt_excerpt": "[route:coding] Run pwd and list the first five entries.", "command": "pwd && ls -1A | head -n 5", "output": "~/codex-task-router\n.DS_Store\n.git\n.github\n.gitignore\nCONTRIBUTING.md", "model": "gpt-6.1-sol", "effort": "medium", "reason": "Explicit route directive", "status": "accepted", "turn_status": "completed"}]};window.DEMO_CAPTIONS=[{"start": 0, "end": 4.0, "lines": ["A new task starts.", "The router picks Luna."]}, {"start": 4.0, "end": 10.5, "lines": ["A simple directory request.", "Luna, with medium reasoning."]}, {"start": 10.5, "end": 14.2, "lines": ["A follow-up stays on Luna."]}, {"start": 14.2, "end": 21.0, "lines": ["The model and reasoning effort", "stay in place."]}, {"start": 21.0, "end": 25.0, "lines": ["Add an explicit route", "when you want control."]}, {"start": 25.0, "end": 30.5, "lines": ["Coding profile selected.", "Sol 6.1, medium reasoning."]}, {"start": 30.5, "end": 35.0, "lines": ["Codex Task Router.", "Open source. MIT licensed."]}];/* Pure, seekable SVG artwork. All visible terminal content comes from session.json. */
+(() => {
+  'use strict';
+  const W = 1080, H = 1920, DURATION = 35, FPS = 30;
+  const C = {paper:'#F3F0E8',ink:'#19382F',terminal:'#121E1A',bar:'#1D2C26',line:'#34493F',muted:'#A7B8AE',white:'#F0F3EB',green:'#9BDCB7',amber:'#F0CF83'};
+  const clamp = (v, lo=0, hi=1) => Math.max(lo, Math.min(hi,v));
+  const smooth = v => { const p=clamp(v); return p*p*(3-2*p); };
+  const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+  const text = (x,y,s,size=40,color=C.white,extra='') => `<text x="${x}" y="${y}" fill="${color}" font-size="${size}" ${extra}>${esc(s)}</text>`;
+  const rect = (x,y,w,h,fill,rx=0,extra='') => `<rect x="${x}" y="${y}" width="${Math.max(0,w)}" height="${h}" rx="${rx}" fill="${fill}" ${extra}/>`;
+  const lines = (values,x,y,size,color,lineHeight,extra='') => values.map((s,i)=>text(x,y+i*lineHeight,s,size,color,extra)).join('');
+  const mono='font-family="Menlo, Consolas, Liberation Mono, monospace"';
+  const sans='font-family="Arial, Helvetica, sans-serif"';
+  function wrap(s,max) {
+    const result=[]; let row='';
+    for (const word of s.split(' ')) {
+      if (row && row.length+1+word.length>max) {result.push(row);row=word;}
+      else row += (row?' ':'')+word;
+    }
+    if(row)result.push(row);
+    return result;
+  }
+  function typed(rows,elapsed,rate=32) {
+    let remaining=Math.max(0,Math.floor(elapsed*rate));
+    return rows.map(row=>{const s=row.slice(0,remaining);remaining=Math.max(0,remaining-row.length-1);return s;});
+  }
+  function frame(seconds) {
+    const t=clamp(Number(seconds)||0,0,DURATION);
+    const index=t<10.5?0:t<21?1:2;
+    const local=t-[0,10.5,21][index];
+    const turn=window.DEMO_SESSION.turns[index];
+    const closing=t>=30.5;
+    const accent=index===2?C.amber:C.green;
+    const enter=smooth(local/.38);
+    const selected=local>=2.8 || index===1;
+    const modelIndex=index===2&&local<2.8?1:index;
+    const model=window.DEMO_SESSION.turns[modelIndex];
+    const selectionVisible=index>0?1:smooth((local-2.6)/.45);
+    const heading=closing?['One conversation.','You stay in control.']:
+      [['Let the task','choose the model.'],['Same task.','Same model.'],['Your choice.','Honoured.']][index];
+    const cap=window.DEMO_CAPTIONS.find(c=>t>=c.start&&t<c.end)||window.DEMO_CAPTIONS.at(-1);
+    const promptRows=index===2?['[route:coding]',...wrap(turn.prompt_excerpt.replace('[route:coding] ',''),32)]:wrap(turn.prompt_excerpt,32);
+    const typedPrompt=typed(promptRows,local-.35,38);
+    const promptComplete=local>.35+(promptRows.join(' ').length/38);
+    const command=turn.command.slice(0,Math.max(0,Math.floor((local-3.35)*38)));
+    const outputCount=Math.floor(clamp((local-4.4)/1.35)*6);
+    const output=turn.output.split('\n').slice(0,outputCount);
+    const outputComplete=local>=5.8;
+    const captionAlpha=smooth((t-cap.start)/.18);
+    const routeLabels=['New task','Follow-up','Explicit'];
+    const readoutLabel=index===1?'RETAINED':index===2?(selected?'EXPLICIT CHOICE':'CURRENT SELECTION'):'AUTOMATIC SELECTION';
+    let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Captioned replay of three verified Codex routing decisions">`;
+    svg+=rect(0,0,W,H,C.paper);
+    svg+=`<g ${sans}>`;
+    svg+=text(76,175,'CODEX TASK ROUTER',30,C.ink,'font-weight="700" letter-spacing="3"');
+    svg+=rect(75,206,510,43,C.ink,6);
+    svg+=text(91,235,'VERIFIED SESSION REPLAY',23,C.paper,'font-weight="700" letter-spacing="1.7"');
+    svg+=lines(heading,72,355,78,C.ink,88,'font-weight="700" letter-spacing="-3"');
+    svg+=`<path d="M 76 465 Q 191 454 327 463" fill="none" stroke="${index===2? '#B7802E':'#69A17A'}" stroke-width="5" stroke-linecap="round"/>`;
+    for(let n=0;n<3;n++) {
+      const x=76+n*310,active=n===index,done=n<index||closing;
+      svg+=rect(x,503,286,4,active||done?C.ink:'#CFD5CB',2);
+      svg+=text(x,545,`${done?'✓':String(n+1).padStart(2,'0')}  ${routeLabels[n]}`,29,active||done?C.ink:'#727F74',`font-weight="${active?'700':'400'}"`);
+    }
+    // Persistent terminal; content changes while the selection readout stays spatially stable.
+    svg+=rect(80,586,928,903,'#D9DDD3',22);
+    svg+=rect(72,578,936,903,C.terminal,20);
+    svg+=rect(72,578,936,76,C.bar,20);
+    svg+=rect(72,616,936,38,C.bar);
+    svg+=`<circle cx="108" cy="616" r="7" fill="#EF8B7C"/><circle cx="133" cy="616" r="7" fill="${C.amber}"/><circle cx="158" cy="616" r="7" fill="${C.green}"/>`;
+    svg+=text(540,626,'codex · same conversation',27,C.muted,'text-anchor="middle"');
+    svg+=`<g opacity="${enter}" transform="translate(0 ${(1-enter)*18})">`;
+    svg+=text(112,704,'PROMPT EXCERPT',22,C.muted,'letter-spacing="2"');
+    svg+=`<g ${mono}>`;
+    svg+=text(111,760,'›',42,accent);
+    typedPrompt.forEach((row,i)=>{svg+=text(153,760+i*50,row,37,index===2&&i===0?C.amber:C.white);});
+    if(!promptComplete && local>.35) {
+      const last=Math.max(0,typedPrompt.findLastIndex(s=>s.length));
+      const x=153+typedPrompt[last].length*22.28;
+      svg+=rect(x,727+last*50,18,39,accent,1);
+    }
+    svg+='</g>';
+    svg+=rect(111,898,856,1,C.line);
+    if(local>=3.35) {
+      svg+=text(112,952,'$',34,accent,mono);
+      svg+=text(153,952,command,34,C.white,mono);
+    }
+    svg+=lines(output,112,1016,36,C.white,49,mono);
+    if(outputComplete) {
+      svg+=text(112,1340,'✓  Command completed',26,C.green);
+      if(Math.floor(local*1.7)%2===0)svg+=rect(113,1386,15,29,C.green,1);
+    }
+    svg+='</g>';
+    // The readout is editorial, sourced from the router record + native turn context.
+    svg+=rect(706,1320,257,116,C.bar,12);
+    svg+=text(728,1355,'RECORDED MODE',20,C.muted,'letter-spacing="1"');
+    svg+=text(728,1401,'task',32,C.white,mono);
+    svg+=`<g opacity="${selectionVisible}">`;
+    svg+=rect(72,1510,936,113,C.ink,14);
+    svg+=text(102,1550,readoutLabel,21,accent,'font-weight="700" letter-spacing="1.6"');
+    svg+=text(102,1600,model.model,39,C.paper,mono+' font-weight="700"');
+    svg+=text(968,1597,'medium',34,C.paper,mono+' text-anchor="end"');
+    svg+=text(968,1548,'REASONING',20,'#B5CCBF','text-anchor="end" letter-spacing="1.6"');
+    svg+='</g>';
+    svg+=`<g opacity="${captionAlpha}">`;
+    svg+=lines(cap.lines,540,1692-(cap.lines.length===1?0:15),43,C.ink,54,'text-anchor="middle" font-weight="700"');
+    svg+='</g>';
+    svg+=text(540,1795,closing?'github.com/Shrinidhikulkarni7/codex-task-router':'Recorded 8 Oct 2026 · task mode · timing edited',23,'#4E6457','text-anchor="middle"');
+    // Continuous progress provides motion without suggesting measured execution latency.
+    svg+=rect(76,1830,928,3,'#D1D8CB',1.5);
+    svg+=rect(76,1830,928*t/DURATION,3,C.ink,1.5);
+    svg+='</g></svg>';
+    return svg;
+  }
+  window.TerminalDemo={frame,DURATION,FPS,W,H};
+})();
+</script><script>
+window.renderAt=t=>{document.getElementById('art').innerHTML=TerminalDemo.frame(t);};
+window.addEventListener('hf-seek',e=>renderAt(e.detail.time));renderAt(0);window.filmReady=true;
+</script></body></html>

@@ -1,0 +1,13 @@
+{
+  "frames_checked": 1050,
+  "text_bounds": {"left":65,"right":1015,"top":120,"bottom":1830},
+  "text_overflow_count": 0,
+  "deterministic_reverse_seeks": true,
+  "determinism_sample_times": [0,1,3,6,10.4,10.5,13.5,17,20.9,21,23.5,27,30.5,34.9666666667],
+  "fonts_status": "loaded",
+  "export_playback": {"ended":true,"duration":35,"current_time":35,"frames_presented":1050,"frames_dropped":0,"errors":[]},
+  "offline_player_controls": {"play":true,"pause":true,"keyboard_seek":true,"restart":true,"viewport":[390,844]},
+  "hyperframes_lint": {"errors":0,"warnings":0},
+  "hyperframes_runtime": "Blocked: listen EPERM: operation not permitted 127.0.0.1",
+  "note": "Bounds and seek checks used the embedded player directly in Chromium, not the blocked HyperFrames runtime checker."
+}

@@ -1,0 +1,9 @@
+[
+  {"start":0,"end":4.0,"lines":["A new task starts.","The router picks Luna."]},
+  {"start":4.0,"end":10.5,"lines":["A simple directory request.","Luna, with medium reasoning."]},
+  {"start":10.5,"end":14.2,"lines":["A follow-up stays on Luna."]},
+  {"start":14.2,"end":21.0,"lines":["The model and reasoning effort","stay in place."]},
+  {"start":21.0,"end":25.0,"lines":["Add an explicit route","when you want control."]},
+  {"start":25.0,"end":30.5,"lines":["Coding profile selected.","Sol 6.1, medium reasoning."]},
+  {"start":30.5,"end":35.0,"lines":["Codex Task Router.","Open source. MIT licensed."]}
+]

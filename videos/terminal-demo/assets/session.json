@@ -1,0 +1,43 @@
+{
+  "source": "Verified native-session records, 2026-10-08",
+  "routing_mode": "task",
+  "presentation": "Reconstructed terminal; prompt excerpts, anonymized project path, edited timing",
+  "turns": [
+    {
+      "step": 1,
+      "prompt": "New task: Run pwd and list the first five entries. Use `pwd && ls -1A | head -n 5`. Do not edit files. Return only the command output.",
+      "prompt_excerpt": "New task: Run pwd and list the first five entries.",
+      "command": "pwd && ls -1A | head -n 5",
+      "output": "~/codex-task-router\n.DS_Store\n.git\n.github\n.gitignore\nCONTRIBUTING.md",
+      "model": "gpt-6-luna",
+      "effort": "medium",
+      "reason": "New task: Simple directory inspection",
+      "status": "accepted",
+      "turn_status": "completed"
+    },
+    {
+      "step": 2,
+      "prompt": "Run pwd and list the first five entries. Use `pwd && ls -1A | head -n 5`. Do not edit files. Return only the command output.",
+      "prompt_excerpt": "Run pwd and list the first five entries.",
+      "command": "pwd && ls -1A | head -n 5",
+      "output": "~/codex-task-router\n.DS_Store\n.git\n.github\n.gitignore\nCONTRIBUTING.md",
+      "model": "gpt-6-luna",
+      "effort": "medium",
+      "reason": "Retaining model and effort for current task",
+      "status": "accepted",
+      "turn_status": "completed"
+    },
+    {
+      "step": 3,
+      "prompt": "[route:coding] Run pwd and list the first five entries. Use `pwd && ls -1A | head -n 5`. Do not edit files. Return only the command output.",
+      "prompt_excerpt": "[route:coding] Run pwd and list the first five entries.",
+      "command": "pwd && ls -1A | head -n 5",
+      "output": "~/codex-task-router\n.DS_Store\n.git\n.github\n.gitignore\nCONTRIBUTING.md",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "reason": "Explicit route directive",
+      "status": "accepted",
+      "turn_status": "completed"
+    }
+  ]
+}

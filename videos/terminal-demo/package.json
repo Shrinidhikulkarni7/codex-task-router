@@ -1,0 +1,16 @@
+{
+  "name": "terminal-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 source/build.py",
+    "dev": "npx --yes hyperframes@0.8.75 preview",
+    "check": "npx --yes hyperframes@0.8.75 check",
+    "render": "python3 source/build.py && node source/render.mjs",
+    "render:hyperframes": "npx --yes hyperframes@0.8.75 render --fps 30 --output renders/codex-task-router-terminal.mp4",
+    "publish": "npx --yes hyperframes@0.8.75 publish"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

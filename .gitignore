@@ -24,3 +24,14 @@ skills/codex-model-router/policy.local.json
 /videos/router-film/qa/*
 !/videos/router-film/qa/REPORT.md
 !/videos/router-film/qa/contact-sheet.jpg
+
+/videos/terminal-demo/renders/*
+/videos/terminal-demo-delivery.zip
+!/videos/terminal-demo/renders/codex-task-router-terminal.mp4
+!/videos/terminal-demo/renders/player.html
+!/videos/terminal-demo/renders/terminal-demo.srt
+!/videos/terminal-demo/renders/cover.png
+/videos/terminal-demo/qa/*
+!/videos/terminal-demo/qa/REPORT.md
+!/videos/terminal-demo/qa/contact-sheet.jpg
+!/videos/terminal-demo/qa/browser-checks.json

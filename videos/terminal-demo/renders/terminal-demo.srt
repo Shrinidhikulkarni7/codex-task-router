@@ -1,0 +1,33 @@
+1
+00:00:00,000 --> 00:00:04,000
+A new task starts.
+The router picks Luna.
+
+2
+00:00:04,000 --> 00:00:10,500
+A simple directory request.
+Luna, with medium reasoning.
+
+3
+00:00:10,500 --> 00:00:14,200
+A follow-up stays on Luna.
+
+4
+00:00:14,200 --> 00:00:21,000
+The model and reasoning effort
+stay in place.
+
+5
+00:00:21,000 --> 00:00:25,000
+Add an explicit route
+when you want control.
+
+6
+00:00:25,000 --> 00:00:30,500
+Coding profile selected.
+Sol 6.1, medium reasoning.
+
+7
+00:00:30,500 --> 00:00:35,000
+Codex Task Router.
+Open source. MIT licensed.

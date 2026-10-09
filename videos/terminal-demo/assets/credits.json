@@ -1,0 +1,14 @@
+{
+  "visuals": "Original JavaScript/SVG terminal reconstruction created for Codex Task Router.",
+  "evidence": "Three consecutive native Codex terminal turns from 2026-10-08; sanitized in session.json.",
+  "fonts": [
+    {"name":"Arial","source":"Installed system font","redistributed":false},
+    {"name":"Menlo","source":"Installed system font","redistributed":false}
+  ],
+  "font_fallbacks": "The offline player uses system fallbacks when Arial or Menlo is unavailable; appearance may vary by system.",
+  "audio": "None. Intentionally silent with explanatory captions.",
+  "voice_model": null,
+  "third_party_visual_or_audio_assets": [],
+  "tools": ["HyperFrames 0.8.75 scaffold and static lint","Chromium through Playwright","FFmpeg libx264"],
+  "registry": "The code-typing pattern was found in the registry; download was unavailable. No registry artwork or component code is included."
+}

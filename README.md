@@ -93,11 +93,28 @@ This example retains ordinary follow-ups and prefers Terra for implementation, w
 
 ## Demo
 
+### Captioned terminal replay
+
+Automatic Luna selection, a retained follow-up, and an explicit Sol override in one conversation. **35 seconds · portrait 1080p · captions · silent.**
+
+<a href="https://raw.githubusercontent.com/Shrinidhikulkarni7/codex-task-router/main/videos/terminal-demo/renders/codex-task-router-terminal.mp4">
+  <img src="videos/terminal-demo/renders/cover.png" alt="Open the captioned terminal replay showing Codex Task Router selecting Luna for a directory listing" width="320">
+</a>
+
+[Open MP4](https://raw.githubusercontent.com/Shrinidhikulkarni7/codex-task-router/main/videos/terminal-demo/renders/codex-task-router-terminal.mp4) · [Subtitles](videos/terminal-demo/renders/terminal-demo.srt) · [Editable sources, offline player, and verification](videos/terminal-demo/README.md)
+
+This is a replay reconstructed from verified terminal records in **task mode**, with prompt excerpts, anonymized paths, and edited timing. The model readout is an editorial overlay of recorded settings. The current default is selective routing, described above.
+
+<details>
+<summary>Earlier illustrated explainer (48 seconds)</summary>
+
 [![Watch the illustrated Codex Task Router demo](videos/router-film/renders/cover.png)](https://github.com/user-attachments/assets/82a66c04-8994-4e4b-8a9a-78433368de8e)
 
 [Watch the 48-second video](https://github.com/user-attachments/assets/82a66c04-8994-4e4b-8a9a-78433368de8e) · [Download MP4](https://raw.githubusercontent.com/Shrinidhikulkarni7/codex-task-router/main/videos/router-film/renders/codex-task-router.mp4) · [Editable sources and offline player](videos/router-film/README.md)
 
 The animation illustrates optional per-prompt routing. The current default is selective routing, described above. Voice attribution and playback limits are in the [media credits](videos/router-film/SOURCES.md) and [QA report](videos/router-film/QA.md).
+
+</details>
 
 ## Documentation and development
 

@@ -50,10 +50,10 @@ Animation, audio stems, script, rebuild instructions and voice attribution are i
 
 Evidence for the Laya integration as of 2026-10-09:
 
-- **192 automated tests:** locally, 190 passed and two socket tests skipped because the sandbox denied binding. All four [CI jobs for the implementation](https://github.com/Shrinidhikulkarni7/codex-task-router/actions/runs/37950317626) passed on macOS/Linux with Python 3.11/3.13. CI uses fixtures and makes no model inference requests.
+- **196 automated tests:** locally, 194 passed and two socket tests skipped because the sandbox denied binding. All four [CI jobs for the original Laya implementation](https://github.com/Shrinidhikulkarni7/codex-task-router/actions/runs/37950317626) passed on macOS/Linux with Python 3.11/3.13. CI uses fixtures and makes no model inference requests.
 - **70/70 authored rule cases matched.** These cases were used during development, so the result is not a measure of accuracy on unseen tasks.
 - **Real Codex use was checked separately.** A six-turn user-terminal check verified task retention, explicit selection, completion, and usage records. It does not validate every selective phase or the Laya path. The inspected CLI was 0.160.1; compatibility with future versions is not assumed.
-- **Live Laya quality remains unverified.** The HTTP adapter and failure paths have simulated-response coverage, and a 24-case comparison runner is available. The development environment prevented real local-service inference. No Laya accuracy, latency, task-quality, or cost improvement has been measured here.
+- **A first real Laya comparison completed.** The user ran 24 stress cases through the local service: 22 responses passed adapter checks and two cases skipped inference. All recommendations fell below the provisional 0.8 threshold. [Saved results and offline threshold replay](docs/laya-evaluation.md) explain why active classification is not yet recommended. General routing accuracy, completed-task quality, and cost improvements remain unproven.
 
 OpenAI documents the app-server and WebSocket interface as experimental and unsupported for production workloads. Validate the intended Codex version and representative tasks before relying on this integration. Start Laya in shadow mode and inspect its recommendations before enabling active classification. See [compatibility and verification](docs/compatibility.md), [live usage measurements](docs/usage-and-cost.md#live-task-retention-verification-2026-10-08), and the [official App Server documentation](https://learn.chatgpt.com/docs/app-server#protocol).
 
@@ -119,6 +119,8 @@ python3 evals/laya_compare.py
 ```
 
 After starting the local service, use the guide's explicit `--run` commands to obtain comparison reports. The reports distinguish usable Laya recommendations from retention and fallback results. Set `classifier.mode` back to `rules` to stop Laya calls; use a new-task boundary or explicit choice if you also want to change an ongoing task's selection.
+
+Already have a report? `python3 evals/laya_replay.py PATH_TO_REPORT.json` compares thresholds offline without more inference or policy changes. The [first local evaluation](docs/laya-evaluation.md) includes the saved evidence and explains why a lower threshold should not be adopted from this small stress set alone.
 
 ## Tokens and cache reuse
 

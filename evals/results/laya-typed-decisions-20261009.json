@@ -1,0 +1,714 @@
+{
+  "schema_version": 1,
+  "kind": "local-classifier-comparison",
+  "recorded_at": "2026-10-09T15:53:23.469990+00:00",
+  "cases_sha256": "3f04b5a56b343d76e9c2448fa4cd424316e41c194a1f0ffa2da8c71c5ce4a07e",
+  "checkpoint_requested": "typed-decisions",
+  "threshold": 0.8,
+  "source_sha256": {
+    "router.py": "76beb53a0a525a4c7dbc95c57f139cd947892d3fca4cde3406a29e582f836579",
+    "laya_classifier.py": "f31c79aff7e868b83a47de3ab70ea0a5f83a55114dea787c06338603a09b67c1"
+  },
+  "limits": "Authored routing rubric. Effective matches include retention/fallbacks, not model accuracy. No Codex inference, task-quality, latency-on-other-hardware or cost claim. Probability threshold is uncalibrated for this workload.",
+  "cases": [
+    {
+      "id": "invoice-download",
+      "expected": "coding",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "coding",
+        "probability": 0.2926,
+        "probabilities": {
+          "precheck": 0.0733,
+          "easy": 0.2751,
+          "coding": 0.2926,
+          "review": 0.1084,
+          "planning": 0.0551,
+          "debugging": 0.0651,
+          "deep-debug": 0.0212,
+          "retain": 0.1092
+        },
+        "elapsed_ms": 1180.6,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "pagination-request",
+      "expected": "coding",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "coding",
+        "probability": 0.2964,
+        "probabilities": {
+          "precheck": 0.0904,
+          "easy": 0.2076,
+          "coding": 0.2964,
+          "review": 0.1132,
+          "planning": 0.0866,
+          "debugging": 0.0748,
+          "deep-debug": 0.0232,
+          "retain": 0.1079
+        },
+        "elapsed_ms": 155.28,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "investigation-request",
+      "expected": "debugging",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "debugging",
+        "probability": 0.4436,
+        "probabilities": {
+          "precheck": 0.1207,
+          "easy": 0.0463,
+          "coding": 0.077,
+          "review": 0.0485,
+          "planning": 0.0092,
+          "debugging": 0.4436,
+          "deep-debug": 0.2255,
+          "retain": 0.0294
+        },
+        "elapsed_ms": 80.51,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "concurrent-workers",
+      "expected": "deep-debug",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "deep-debug",
+        "probability": 0.458,
+        "probabilities": {
+          "precheck": 0.0594,
+          "easy": 0.0154,
+          "coding": 0.0509,
+          "review": 0.044,
+          "planning": 0.0249,
+          "debugging": 0.3208,
+          "deep-debug": 0.458,
+          "retain": 0.0267
+        },
+        "elapsed_ms": 80.26,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "scope-compiler",
+      "expected": "planning",
+      "rules": "coding",
+      "effective_with_laya": "coding",
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "planning",
+        "probability": 0.33,
+        "probabilities": {
+          "precheck": 0.0634,
+          "easy": 0.0331,
+          "coding": 0.2139,
+          "review": 0.1061,
+          "planning": 0.33,
+          "debugging": 0.0701,
+          "deep-debug": 0.0989,
+          "retain": 0.0847
+        },
+        "elapsed_ms": 102.16,
+        "rules_profile": "coding"
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "scope-local-button",
+      "expected": "coding",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "easy",
+        "probability": 0.2923,
+        "probabilities": {
+          "precheck": 0.0773,
+          "easy": 0.2923,
+          "coding": 0.2875,
+          "review": 0.1232,
+          "planning": 0.0265,
+          "debugging": 0.0641,
+          "deep-debug": 0.0363,
+          "retain": 0.0928
+        },
+        "elapsed_ms": 76.7,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "safe-typo",
+      "expected": "easy",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "easy",
+        "probability": 0.4511,
+        "probabilities": {
+          "precheck": 0.0799,
+          "easy": 0.4511,
+          "coding": 0.1547,
+          "review": 0.0665,
+          "planning": 0.0166,
+          "debugging": 0.0596,
+          "deep-debug": 0.0229,
+          "retain": 0.1487
+        },
+        "elapsed_ms": 76.31,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "authorization-semantics",
+      "expected": "planning",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "coding",
+        "probability": 0.2628,
+        "probabilities": {
+          "precheck": 0.0837,
+          "easy": 0.1968,
+          "coding": 0.2628,
+          "review": 0.1081,
+          "planning": 0.1256,
+          "debugging": 0.0683,
+          "deep-debug": 0.0306,
+          "retain": 0.1241
+        },
+        "elapsed_ms": 79.3,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "explain-locks",
+      "expected": "easy",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "easy",
+        "probability": 0.2429,
+        "probabilities": {
+          "precheck": 0.098,
+          "easy": 0.2429,
+          "coding": 0.1638,
+          "review": 0.1073,
+          "planning": 0.0302,
+          "debugging": 0.1195,
+          "deep-debug": 0.1538,
+          "retain": 0.0845
+        },
+        "elapsed_ms": 75.45,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "release-summary",
+      "expected": "easy",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "easy",
+        "probability": 0.2335,
+        "probabilities": {
+          "precheck": 0.2014,
+          "easy": 0.2335,
+          "coding": 0.0639,
+          "review": 0.1631,
+          "planning": 0.0354,
+          "debugging": 0.0721,
+          "deep-debug": 0.038,
+          "retain": 0.1925
+        },
+        "elapsed_ms": 76.09,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "existing-checks",
+      "expected": "precheck",
+      "rules": "coding",
+      "effective_with_laya": "coding",
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "precheck",
+        "probability": 0.2692,
+        "probabilities": {
+          "precheck": 0.2692,
+          "easy": 0.1885,
+          "coding": 0.1019,
+          "review": 0.1478,
+          "planning": 0.011,
+          "debugging": 0.0681,
+          "deep-debug": 0.0193,
+          "retain": 0.1942
+        },
+        "elapsed_ms": 76.31,
+        "rules_profile": "coding"
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "architecture-choice",
+      "expected": "planning",
+      "rules": "planning",
+      "effective_with_laya": "planning",
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "planning",
+        "probability": 0.3635,
+        "probabilities": {
+          "precheck": 0.0505,
+          "easy": 0.0512,
+          "coding": 0.143,
+          "review": 0.1569,
+          "planning": 0.3635,
+          "debugging": 0.05,
+          "deep-debug": 0.0631,
+          "retain": 0.1218
+        },
+        "elapsed_ms": 88.63,
+        "rules_profile": "planning"
+      },
+      "rules_match": true,
+      "effective_match": true
+    },
+    {
+      "id": "code-review",
+      "expected": "review",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "review",
+        "probability": 0.2862,
+        "probabilities": {
+          "precheck": 0.1926,
+          "easy": 0.0818,
+          "coding": 0.1801,
+          "review": 0.2862,
+          "planning": 0.0365,
+          "debugging": 0.0684,
+          "deep-debug": 0.0386,
+          "retain": 0.1158
+        },
+        "elapsed_ms": 80.89,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "quoted-risk",
+      "expected": "easy",
+      "rules": "coding",
+      "effective_with_laya": "coding",
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "deep-debug",
+        "probability": 0.2675,
+        "probabilities": {
+          "precheck": 0.0778,
+          "easy": 0.1628,
+          "coding": 0.0809,
+          "review": 0.067,
+          "planning": 0.0336,
+          "debugging": 0.2462,
+          "deep-debug": 0.2675,
+          "retain": 0.0642
+        },
+        "elapsed_ms": 79.35,
+        "rules_profile": "coding"
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "negated-work",
+      "expected": "easy",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "planning",
+        "probability": 0.2033,
+        "probabilities": {
+          "precheck": 0.0959,
+          "easy": 0.1931,
+          "coding": 0.172,
+          "review": 0.1325,
+          "planning": 0.2033,
+          "debugging": 0.0476,
+          "deep-debug": 0.0329,
+          "retain": 0.1226
+        },
+        "elapsed_ms": 80.22,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "mixed-work",
+      "expected": "debugging",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "debugging",
+        "probability": 0.5106,
+        "probabilities": {
+          "precheck": 0.0625,
+          "easy": 0.0396,
+          "coding": 0.103,
+          "review": 0.0508,
+          "planning": 0.0112,
+          "debugging": 0.5106,
+          "deep-debug": 0.1808,
+          "retain": 0.0416
+        },
+        "elapsed_ms": 78.0,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "insufficient-context",
+      "expected": null,
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "easy",
+        "probability": 0.3059,
+        "probabilities": {
+          "precheck": 0.0931,
+          "easy": 0.3059,
+          "coding": 0.1323,
+          "review": 0.0836,
+          "planning": 0.0206,
+          "debugging": 0.1107,
+          "deep-debug": 0.0348,
+          "retain": 0.219
+        },
+        "elapsed_ms": 80.72,
+        "rules_profile": null
+      },
+      "rules_match": true,
+      "effective_match": true
+    },
+    {
+      "id": "acknowledgment",
+      "expected": null,
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "status": "skipped",
+        "reason": "brief_continuation",
+        "used": false,
+        "rules_profile": null
+      },
+      "rules_match": true,
+      "effective_match": true
+    },
+    {
+      "id": "followup-feature",
+      "expected": "coding",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "easy",
+        "probability": 0.3978,
+        "probabilities": {
+          "precheck": 0.1176,
+          "easy": 0.3978,
+          "coding": 0.1687,
+          "review": 0.1009,
+          "planning": 0.0586,
+          "debugging": 0.0367,
+          "deep-debug": 0.0122,
+          "retain": 0.1075
+        },
+        "elapsed_ms": 77.58,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "followup-investigation",
+      "expected": "debugging",
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "debugging",
+        "probability": 0.4962,
+        "probabilities": {
+          "precheck": 0.0973,
+          "easy": 0.0156,
+          "coding": 0.1199,
+          "review": 0.0589,
+          "planning": 0.0069,
+          "debugging": 0.4962,
+          "deep-debug": 0.1703,
+          "retain": 0.035
+        },
+        "elapsed_ms": 75.47,
+        "rules_profile": null
+      },
+      "rules_match": false,
+      "effective_match": false
+    },
+    {
+      "id": "followup-check",
+      "expected": null,
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "status": "skipped",
+        "reason": "existing_check",
+        "used": false,
+        "rules_profile": "precheck"
+      },
+      "rules_match": true,
+      "effective_match": true
+    },
+    {
+      "id": "followup-lower",
+      "expected": null,
+      "rules": null,
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "easy",
+        "probability": 0.2826,
+        "probabilities": {
+          "precheck": 0.1177,
+          "easy": 0.2826,
+          "coding": 0.0995,
+          "review": 0.0776,
+          "planning": 0.0151,
+          "debugging": 0.1711,
+          "deep-debug": 0.1447,
+          "retain": 0.0917
+        },
+        "elapsed_ms": 76.27,
+        "rules_profile": null
+      },
+      "rules_match": true,
+      "effective_match": true
+    },
+    {
+      "id": "followup-batch",
+      "expected": "easy",
+      "rules": "easy",
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "planning",
+        "probability": 0.3185,
+        "probabilities": {
+          "precheck": 0.0898,
+          "easy": 0.1306,
+          "coding": 0.0583,
+          "review": 0.1832,
+          "planning": 0.3185,
+          "debugging": 0.0624,
+          "deep-debug": 0.0393,
+          "retain": 0.1179
+        },
+        "elapsed_ms": 82.9,
+        "rules_profile": "easy"
+      },
+      "rules_match": true,
+      "effective_match": false
+    },
+    {
+      "id": "followup-approved",
+      "expected": "coding",
+      "rules": "coding",
+      "effective_with_laya": null,
+      "classifier": {
+        "backend": "laya",
+        "mode": "laya",
+        "checkpoint": "typed-decisions",
+        "threshold": 0.8,
+        "used": false,
+        "status": "low_probability",
+        "profile": "planning",
+        "probability": 0.2694,
+        "probabilities": {
+          "precheck": 0.1236,
+          "easy": 0.0821,
+          "coding": 0.1655,
+          "review": 0.1411,
+          "planning": 0.2694,
+          "debugging": 0.0614,
+          "deep-debug": 0.0214,
+          "retain": 0.1356
+        },
+        "elapsed_ms": 80.55,
+        "rules_profile": "coding"
+      },
+      "rules_match": true,
+      "effective_match": false
+    }
+  ],
+  "summary": {
+    "evaluated": 24,
+    "requested": 24,
+    "rules_matches": 7,
+    "effective_matches_including_fallbacks": 5,
+    "usable_recommendations": 0
+  }
+}

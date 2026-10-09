@@ -16,7 +16,7 @@ Only `router.py auto` uses this classifier setting. `preview`, `run`, `apply`, t
 
 ## Run a local service
 
-Laya runs separately from the standard-library router. Install it in a dedicated environment, following [upstream installation instructions](https://github.com/NandhaKishorM/laya#installation-details). The adapter targets the extended HTTP contract inspected in the upstream 0.4.1 source; it has been tested with simulated responses, not a locally installed 0.4.1 model.
+Laya runs separately from the standard-library router. Install it in a dedicated environment, following [upstream installation instructions](https://github.com/NandhaKishorM/laya#installation-details). The adapter targets the extended HTTP contract inspected in the upstream 0.4.1 source. A subsequent user-run local service comparison exercised that contract with real model responses; see the [results and limits](../../../docs/laya-evaluation.md).
 
 For example, from the repository root:
 
@@ -61,7 +61,15 @@ python3 evals/laya_compare.py --run --checkpoint multilingual --threshold 0.9 \
 
 These commands perform local Laya inference only. They do not submit Codex tasks, change live settings, or update policy. Reports are created owner-only; existing output paths are refused before inference. Service errors stop the comparison without retries. Exit 0 means all effective decisions matched the rubric, exit 1 means a mismatch, and exit 2 means an input/service/output error. A match count includes deterministic retention and fallback decisions; inspect `usable_recommendations` and each classifier status before attributing results to Laya.
 
-The 24 authored cases deliberately stress known rule weaknesses, including paraphrases, misleading domain words, and follow-ups. They are not a representative accuracy benchmark, and become development data if used for tuning. Reports contain IDs, expected/effective profiles, probabilities and source/corpus hashes, without copying prompts. No live Laya result is committed: the development environment lacked Laya and its dependencies, package lookup did not provide an installable distribution, and the real-service probe returned a transport error. A direct connection check confirmed that the sandbox denied loopback access (`PermissionError`, errno 1).
+The 24 authored cases deliberately stress known rule weaknesses, including paraphrases, misleading domain words, and follow-ups. They are not a representative accuracy benchmark, and become development data if used for tuning. Reports contain IDs, expected/effective profiles, probabilities and source/corpus hashes, without copying prompts. The [first user-run local report and analysis](../../../docs/laya-evaluation.md) are now committed: 22 responses passed adapter checks, but none reached the provisional 0.8 probability threshold. The development agent still cannot contact the service because its sandbox denies loopback access; it can inspect and replay saved reports.
+
+To inspect different thresholds without making another inference request:
+
+```sh
+python3 evals/laya_replay.py evals/local-results/laya-comparison-1.json
+```
+
+This verifies the saved corpus/source hashes and original decisions before replay. It never edits the threshold or enables routing. Low probability is an abstention by the router's gate, not a connection failure. Do not lower the cutoff just to obtain accepted recommendations; use separate calibration and evaluation data.
 
 ## Enable session comparisons
 

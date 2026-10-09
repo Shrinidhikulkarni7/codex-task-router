@@ -54,6 +54,12 @@ The local suite reported **164 tests: 163 passed and one Unix-listener test was 
 
 The optional answer-quality runner was checked against local `codex exec --help`, exercised through its offline listing, and tested with fake CLI results. A read-only live `doctor` probe was denied control-socket access. No new model inference, real answer-quality score, or cost result is claimed. CI runs the offline evaluation/runner tests only.
 
+## Optional Laya verification: 2026-10-09
+
+The optional Laya classifier is separate from live switching. It runs only in the `auto` selection path and does not require `step_model_switching`. Its extended HTTP contract was checked against upstream Laya 0.4.1 source. The local adapter was exercised with simulated HTTP/model responses, and a 24-case comparison tool was added. No real Laya recommendation was obtained: Laya/ML dependencies were absent, package lookup yielded no installable distribution in this environment, and a direct loopback connection probe was denied with `PermissionError` (errno 1). No improvement in classification accuracy, task quality, or cost is claimed. See [setup and verification limits](../skills/codex-model-router/references/laya.md).
+
+The expanded local suite reported **192 tests: 190 passed and two socket tests skipped** because the sandbox denied binding (Unix proxy and loopback HTTP). Coverage includes shadow disagreement, active recommendations, pins/manual updates during classification, retention, catalog rejection, bounded HTTP, response validation, cooldown, private reports, and an offline evaluation default. The original routing corpus remained 70/70. Routine CI uses fixtures and does not install or run Laya.
+
 ## Live switching
 
 `turn/settings/update` was present in the inspected local experimental schema but is not described as a stable method on the fetched public App Server page. In the diagnosed 0.160.0 setup it required `step_model_switching`, a feature marked under development and disabled by default in that setup.

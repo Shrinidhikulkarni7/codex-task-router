@@ -1,6 +1,6 @@
 # Tokens, cache reuse, and routing
 
-The default is now **selective switching**: keep suitable settings for brief follow-ups, reconsider on recognized work-phase instructions, and honor explicit choices. Optional `task` mode keeps a selection until a boundary/override; `prompt` mode retains the earlier per-prompt strategy. All use one conversation with no classifier inference call or automatic worker creation. See [the exact rules](selective-routing.md).
+The default is now **selective switching**: keep suitable settings for brief follow-ups, reconsider on recognized work-phase instructions, and honor explicit choices. Optional `task` mode keeps a selection until a boundary/override; `prompt` mode retains the earlier per-prompt strategy. All use one conversation without automatic worker creation. The default classifier makes no inference call; optional [Laya modes](../skills/codex-model-router/references/laya.md) add local inference time and resource usage, including in comparison-only mode. See [the exact rules](selective-routing.md).
 
 The [manual comparison below](#observed-model-switch-comparison-2026-10-07) found more uncached input after each model change than on its following repeat. That supports avoiding unnecessary switches, but does not prove that a stable model is always cheaper. Model rates, total work, retries, and correctness also matter. No measured cheapest-strategy claim follows from these trials.
 

@@ -1,6 +1,6 @@
 # Selective routing: the complete decision process
 
-Selective routing is the default in `policy.json`. It uses local text rules to reconsider a selection when the work changes, while retaining it for short checks and continuations. It does not estimate the cheapest model, evaluate answer correctness, or call a classifier model. It uses one conversation; it does not create subagents.
+Selective routing is the default in `policy.json`. It uses local text rules to reconsider a selection when the work changes, while retaining it for short checks and continuations. Default rules make no classifier call. The optional [Laya classifier](../skills/codex-model-router/references/laya.md) can compare or supply candidate profiles, with the same retention controls. Neither estimates the cheapest model or evaluates answer correctness. Routing uses one conversation; it does not create subagents.
 
 ## From prompt to accepted turn
 

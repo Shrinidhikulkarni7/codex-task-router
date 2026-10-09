@@ -79,7 +79,7 @@ The quality runner and its graders were tested with independent fake CLI results
 
 ## Deciding whether a model-based classifier is worth adding
 
-The runtime still uses local Python rules and `policy.json`; no additional classifier inference is enabled. The corrected failures were addressable locally, and the available evidence does not establish that a model-based classifier improves completed-task outcomes enough to pay for itself.
+Default runtime classification still uses local Python rules and `policy.json`; no additional classifier inference is enabled by default. An optional [Laya backend](../skills/codex-model-router/references/laya.md) now supports shadow comparisons and experimental active classification in `auto`. Its 24 authored paraphrase cases deliberately stress rule weaknesses; `python3 evals/laya_compare.py` lists them offline, and `--run --output NEW_FILE` explicitly performs local Laya inference. These are classification checks, separate from the existing seven native Codex answer checks. The available evidence does not establish that Laya improves completed-task outcomes or cost.
 
 For the next evaluation, collect consented, sanitized examples beyond this development corpus and label their intended scope before tuning. Include unfamiliar wording and a mix of short and substantial tasks. For real engineering work, use clean copies of representative repositories and objective completion checks, including required tests and review of the actual changes. Record retries, elapsed time, and account usage as well as routing decisions. Do not treat these seven answer checks as a substitute for that work.
 

@@ -221,7 +221,9 @@ class TurnRouter:
     """Keep routing state per thread; never retain prompt contents in diagnostics."""
 
     def __init__(self, settings=router.policy, record=router.HookRun):
+        from laya_classifier import LayaClient
         self.settings, self.record = settings, record
+        self.classifier = LayaClient()
         self.current = {}
         self.active = set()
         self.active_turns = {}
@@ -230,6 +232,20 @@ class TurnRouter:
         self.task_selected = set()
         self.phase = {}
         self.pinned = set()
+
+    async def classify(self, text, policy, run, previous=None, followup=False):
+        from laya_classifier import classify
+        rules = router.classify(text)
+        decision, report = await classify(text, policy, rules, self.classifier, previous, followup)
+        if report is not None:
+            rules_result = router.selective_phase(text, previous, decision=rules) if followup else rules
+            if report.get("status") == "recommended":
+                proposed = (report["profile"], "Local Laya classification")
+                if followup:
+                    proposed = router.selective_phase(text, previous, decision=proposed)
+                report.update(proposed_profile=proposed[0], agrees_with_rules=proposed[0] == rules_result[0])
+            run.update(classifier=report)
+        return router.selective_phase(text, previous, decision=decision) if followup else decision
 
     def observe_thread_kind(self, thread, requested_ephemeral=None):
         if not isinstance(thread, dict):
@@ -292,7 +308,7 @@ class TurnRouter:
                 if thread in self.pinned:
                     reason = "Retaining explicit or resumed selection; use New task: to allow automatic selection"
                 else:
-                    profile, reason = router.selective_phase(text, self.phase.get(thread))
+                    profile, reason = await self.classify(text, policy, run, self.phase.get(thread), followup=True)
                     if profile:
                         choice = router.select_model(profile, await catalog(), policy)
                         reason = "Work phase: " + reason
@@ -301,7 +317,7 @@ class TurnRouter:
                         reason = "Selective retention: " + reason
             else:
                 if not directive:
-                    profile, reason = router.classify(text)
+                    profile, reason = await self.classify(text, policy, run)
                 if profile:
                     choice = router.select_model(profile, await catalog(), policy)
                 elif (params.get("collaborationMode") or {}).get("mode") == "plan":
@@ -314,6 +330,16 @@ class TurnRouter:
                              "profile": profile, "pinned": bool(directive)}
                 if new_task:
                     reason = "New task: " + reason
+            # A native settings acknowledgment can arrive while the optional
+            # classifier/catalog is awaited. Honor it before submitting an
+            # ordinary prompt; explicit requests and new-task boundaries win.
+            if thread in self.manual_next and not directive and not explicit and not new_task:
+                choice = self.current.get(thread, choice)
+                reason = "Retaining the acknowledged native model selection"
+                selection = {"kind": "native", "profile": None, "pinned": True}
+                comparison = run.record.get("classifier")
+                if comparison is not None:
+                    run.update(classifier=dict(comparison, used=False, superseded_by_native_selection=True))
             if thread in self.active:
                 run.update(status="skipped", reason="The thread became active during selection; preserve the running turn")
                 return message, run

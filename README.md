@@ -11,9 +11,11 @@ Continue                          → keep Astra · xhigh
 New task: List files here          → Luna · medium
 ```
 
-These are examples of the shipped rules, subject to your account's available models. Classification is local Python logic; it makes no separate LLM request. The router uses your existing Codex authentication and needs no Python packages or separate API key.
+These are examples of the shipped rules, subject to your account's available models. Default classification is local Python logic with no inference request. The router uses your existing Codex authentication and needs no Python packages or separate API key. An optional local Laya service can supply experimental semantic classification; its dependencies are installed separately.
 
 The rules consider the requested action and stated scope before domain keywords. A one-sentence definition of a deadlock selects `easy`; investigating an actual deadlock selects `deep-debug`. A one-line pure helper selects `easy`, while building a whole compiler selects the higher-reasoning `planning` profile. These remain heuristics. The [evaluation guide](docs/routing-evaluation.md) records 70 authored routing cases, before/after results, and optional checks of actual model answers.
+
+For unfamiliar wording, the [optional Laya integration](skills/codex-model-router/references/laya.md) adds `shadow` comparisons and experimental active classification to `auto`. Rules remain the default. Pins, phase retention, and model validation stay authoritative. Real Laya accuracy and savings have not been established here.
 
 ## Watch the demo
 

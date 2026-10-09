@@ -12,6 +12,7 @@ python3 install.py --help
 python3 skills/codex-model-router/scripts/router.py --help
 python3 evals/evaluate.py
 python3 evals/task_quality.py
+python3 evals/laya_compare.py
 ```
 
 The test suite uses temporary Codex homes, model catalogs, and independent protocol peers. It must run without a Codex login, network access, credentials, global installation, or inference calls. The Unix-listener test skips only when the host explicitly denies socket binding; retain the process-pipe coverage when that happens.
@@ -35,6 +36,8 @@ For a routing or protocol change, add a regression test for the observable behav
 The local rule classifier is intentionally inspectable. A new trigger should include realistic positive and negative examples, especially pasted logs, ambiguous continuations, and mixed tasks. Changes to default model preferences should explain the intended policy choice without presenting it as a benchmark result.
 
 The authored routing corpus in `evals/routing_cases.jsonl` supplies regression expectations and a rationale per case. Add realistic contrast cases rather than silently changing labels to fit a new implementation. A passing corpus is development-set agreement, not general accuracy. Keep the [evaluation guide](docs/routing-evaluation.md) and dated result provenance accurate. `task_quality.py` lists cases offline by default; never add `--run` to routine CI, because it starts authenticated inference.
+
+The optional Laya adapter has independent transport/response fixtures and routing-state tests. CI must not install Laya, download weights, or contact a real classifier. `laya_compare.py` also lists cases offline by default; `--run` intentionally uses local model inference. Preserve pins, deterministic retention, no-prompt diagnostics, timeout/fallback behavior, and the distinction between model recommendations and actual accepted settings. Never report its authored stress cases as a held-out real-task benchmark.
 
 ## Testing a real terminal
 

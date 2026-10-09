@@ -175,13 +175,21 @@ def routing_status(thread_id=None):
 def validate_policy(value):
     if not isinstance(value, dict):
         raise RouterError("policy.json must contain an object")
-    unknown = set(value) - {"enabled", "routing_mode", "profiles"}
+    unknown = set(value) - {"enabled", "routing_mode", "profiles", "classifier"}
     if unknown:
         raise RouterError("Unknown policy fields: " + ", ".join(sorted(unknown)))
     if not isinstance(value.get("enabled"), bool):
         raise RouterError("policy.enabled must be true or false")
     if value.get("routing_mode", "selective") not in ("selective", "task", "prompt"):
         raise RouterError('policy.routing_mode must be "selective", "task", or "prompt"')
+    if "classifier" in value:
+        from laya_classifier import config
+        if not isinstance(value["classifier"], dict):
+            raise RouterError("policy.classifier must be an object")
+        try:
+            config(value["classifier"])
+        except ValueError as error:
+            raise RouterError(str(error)) from error
     profiles = value.get("profiles")
     if not isinstance(profiles, dict):
         raise RouterError("policy.profiles must be an object")
@@ -357,14 +365,14 @@ def classify(task, phase=None, failed_attempts=0):
     return None, "Uncertain task or continuation; keep the current choice"
 
 
-def selective_phase(task, previous):
+def selective_phase(task, previous, *, decision=None):
     """Recognize a few strong phase signals, without predicting price or quality.
 
     Levels order the shipped routing profiles, not the capability of arbitrary
     model IDs. A short check never lowers the selection of an ongoing task.
     """
     prose = normalize_request(routing_prose(task))
-    profile, reason = classify(task)
+    profile, reason = classify(task) if decision is None else decision
     if profile is None or profile == previous:
         return None, "Continuing the selected work phase"
     if profile == "easy" and re.match(r"(?:summarize|summarise|extract)\b", prose):
